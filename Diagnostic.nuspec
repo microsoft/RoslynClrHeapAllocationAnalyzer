@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>ClrHeapAllocationAnalyzer</id>
-    <version>1.0.0.2</version>
+    <version>1.0.0.3</version>
     <title>Clr Heap Allocation Analyzer</title>
     <authors>mjsabby</authors>
     <owners>mjsabby</owners>
