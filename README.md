@@ -9,4 +9,8 @@ You can find it on the Visual Studio Gallery, https://visualstudiogallery.msdn.m
 
 If you want it use it in your build: https://www.nuget.org/packages/ClrHeapAllocationAnalyzer/1.0.0.3
 
+**NOTE: Requires [Visual Studio 14 CTP 4](http://www.visualstudio.com/en-us/downloads/visual-studio-14-ctp-vs.aspx)**
+
+![example](https://cloud.githubusercontent.com/assets/1930559/4606581/2a027d08-5225-11e4-8d4e-686c204a1267.png)
+
 10/12/2014: I'm making a YouTube video that'll show it in action soon.
