@@ -11,17 +11,17 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class ExplicitAllocationAnalyzer : ISyntaxNodeAnalyzer<SyntaxKind>
     {
-        internal static DiagnosticDescriptor NewArrayRule = new DiagnosticDescriptor("HeapAnalyzerExplicitNewArrayRule", "Explicit new array type allocation", string.Empty, "Performance", DiagnosticSeverity.Info, true);
+        internal static DiagnosticDescriptor NewArrayRule = new DiagnosticDescriptor("HeapAnalyzerExplicitNewArrayRule", "Explicit new array type allocation", "Explicit new array type allocation", "Performance", DiagnosticSeverity.Info, true);
 
-        internal static DiagnosticDescriptor NewObjectRule = new DiagnosticDescriptor("HeapAnalyzerExplicitNewObjectRule", "Explicit new reference type allocation", string.Empty, "Performance", DiagnosticSeverity.Info, true);
+        internal static DiagnosticDescriptor NewObjectRule = new DiagnosticDescriptor("HeapAnalyzerExplicitNewObjectRule", "Explicit new reference type allocation", "Explicit new reference type allocation", "Performance", DiagnosticSeverity.Info, true);
 
-        internal static DiagnosticDescriptor AnonymousNewObjectRule = new DiagnosticDescriptor("HeapAnalyzerExplicitNewAnonymousObjectRule", "Explicit new anonymous object allocation", string.Empty, "Performance", DiagnosticSeverity.Info, true, string.Empty, "http://msdn.microsoft.com/en-us/library/bb397696.aspx");
+        internal static DiagnosticDescriptor AnonymousNewObjectRule = new DiagnosticDescriptor("HeapAnalyzerExplicitNewAnonymousObjectRule", "Explicit new anonymous object allocation", "Explicit new anonymous object allocation", "Performance", DiagnosticSeverity.Info, true, string.Empty, "http://msdn.microsoft.com/en-us/library/bb397696.aspx");
 
-        internal static DiagnosticDescriptor ImplicitArrayCreationRule = new DiagnosticDescriptor("HeapAnalyzerImplicitNewArrayCreationRule", "Implicit new array creation allocation", string.Empty, "Performance", DiagnosticSeverity.Info, true);
+        internal static DiagnosticDescriptor ImplicitArrayCreationRule = new DiagnosticDescriptor("HeapAnalyzerImplicitNewArrayCreationRule", "Implicit new array creation allocation", "Implicit new array creation allocation", "Performance", DiagnosticSeverity.Info, true);
 
-        internal static DiagnosticDescriptor InitializerCreationRule = new DiagnosticDescriptor("HeapAnalyzerInitializerCreationRule", "Initializer reference type allocation", string.Empty, "Performance", DiagnosticSeverity.Info, true);
+        internal static DiagnosticDescriptor InitializerCreationRule = new DiagnosticDescriptor("HeapAnalyzerInitializerCreationRule", "Initializer reference type allocation", "Initializer reference type allocation", "Performance", DiagnosticSeverity.Info, true);
 
-        internal static DiagnosticDescriptor LetCauseRule = new DiagnosticDescriptor("HeapAnalyzerLetClauseRule", "Let clause induced allocation", string.Empty, "Performance", DiagnosticSeverity.Info, true);
+        internal static DiagnosticDescriptor LetCauseRule = new DiagnosticDescriptor("HeapAnalyzerLetClauseRule", "Let clause induced allocation", "Let clause induced allocation", "Performance", DiagnosticSeverity.Info, true);
 
         internal static object[] EmptyMessageArgs = { };
 

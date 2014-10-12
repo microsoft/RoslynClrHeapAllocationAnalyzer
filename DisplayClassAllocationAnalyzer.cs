@@ -13,7 +13,7 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class DisplayClassAllocationAnalyzer : ISyntaxNodeAnalyzer<SyntaxKind>
     {
-        internal static DiagnosticDescriptor ClosureDriverRule = new DiagnosticDescriptor("HeapAnalyzerClosureSourceRule", "Closure Allocation Source", "Captures: {0}", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor ClosureDriverRule = new DiagnosticDescriptor("HeapAnalyzerClosureSourceRule", "Closure Allocation Source", "Heap allocation of closure Captures: {0}", "Performance", DiagnosticSeverity.Warning, true);
 
         internal static DiagnosticDescriptor ClosureCaptureRule = new DiagnosticDescriptor("HeapAnalyzerClosureCaptureRule", "Display class allocation to capture closure", "The compiler will emit a class that will hold this as a field to allow capturing of this closure", "Performance", DiagnosticSeverity.Warning, true);
 

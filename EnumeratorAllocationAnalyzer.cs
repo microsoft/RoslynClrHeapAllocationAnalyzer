@@ -11,7 +11,7 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class EnumeratorAllocationAnalyzer : ISyntaxNodeAnalyzer<SyntaxKind>
     {
-        internal static DiagnosticDescriptor ReferenceTypeEnumeratorRule = new DiagnosticDescriptor("HeapAnalyzerEnumeratorAllocationRule", "Reference type enumerator, possible allocation", "Enumerator is not of a value type, and so it is possible that this results in an enumerator allocation", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor ReferenceTypeEnumeratorRule = new DiagnosticDescriptor("HeapAnalyzerEnumeratorAllocationRule", "Possible allocation of reference type enumerator", "Non-ValueType enumerator may result in an heap allocation", "Performance", DiagnosticSeverity.Warning, true);
 
         internal static object[] EmptyMessageArgs = { };
 
