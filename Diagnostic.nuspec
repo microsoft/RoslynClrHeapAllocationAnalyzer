@@ -1,0 +1,24 @@
+﻿<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>ClrHeapAllocationAnalyzer</id>
+    <version>1.0.0.0</version>
+    <title>ClrHeapAllocationAnalyzer</title>
+    <authors>mjsabby</authors>
+    <owners>mjsabby</owners>
+    <licenseUrl>https://github.com/mjsabby/RoslynClrHeapAllocationAnalyzer/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/mjsabby/RoslynClrHeapAllocationAnalyzer</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>DiagnosticAndCodeFix</description>
+    <releaseNotes>Initial release.</releaseNotes>
+    <copyright>Copyright</copyright>
+    <tags>clr allocations boxing closure displayclass delegate enumerator newobj roslyn analyzer diagnostic</tags>
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System" targetFramework="" />
+    </frameworkAssemblies>
+  </metadata>
+  <files>
+    <file src="*.dll" target="tools\analyzers\" exclude="**\Microsoft.CodeAnalysis.*;**\System.Collections.Immutable.*;**\System.Reflection.Metadata.*" />
+    <file src="tools\*.ps1" target="tools\" />
+  </files>
+</package>
