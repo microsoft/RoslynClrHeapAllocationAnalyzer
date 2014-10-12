@@ -13,11 +13,13 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class DisplayClassAllocationAnalyzer : ISyntaxNodeAnalyzer<SyntaxKind>
     {
-        internal static DiagnosticDescriptor ClosureDriverRule = new DiagnosticDescriptor("Closure Allocation Source", string.Empty, "Captures: {0}", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor ClosureDriverRule = new DiagnosticDescriptor("HeapAnalyzerClosureSourceRule", "Closure Allocation Source", "Captures: {0}", "Performance", DiagnosticSeverity.Warning, true);
 
-        internal static DiagnosticDescriptor ClosureCaptureRule = new DiagnosticDescriptor("Display class allocation to capture closure", string.Empty, "The compiler will emit a class that will hold this as a field to allow capturing of this closure", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor ClosureCaptureRule = new DiagnosticDescriptor("HeapAnalyzerClosureCaptureRule", "Display class allocation to capture closure", "The compiler will emit a class that will hold this as a field to allow capturing of this closure", "Performance", DiagnosticSeverity.Warning, true);
 
-        internal static DiagnosticDescriptor LambaOrAnonymousMethodInGenericMethodRule = new DiagnosticDescriptor("Lambda or anonymous method in a generic method allocates a delegate instance", string.Empty, "Considering moving this out of the generic method", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor LambaOrAnonymousMethodInGenericMethodRule = new DiagnosticDescriptor("HeapAnalyzerLambdaInGenericMethodRule", "Lambda or anonymous method in a generic method allocates a delegate instance", "Considering moving this out of the generic method", "Performance", DiagnosticSeverity.Warning, true);
+
+        internal static object[] EmptyMessageArgs = { };
 
         public ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
@@ -74,14 +76,14 @@
                         captures.Add(dfaIn.Name);
                         foreach (var l in dfaIn.Locations)
                         {
-                            addDiagnostic(Diagnostic.Create(ClosureCaptureRule, l));
+                            addDiagnostic(Diagnostic.Create(ClosureCaptureRule, l, EmptyMessageArgs));
                         }
                     }
                 }
 
                 if (captures.Count > 0)
                 {
-                    addDiagnostic(Diagnostic.Create(ClosureDriverRule, location, string.Join(",", captures)));
+                    addDiagnostic(Diagnostic.Create(ClosureDriverRule, location, new object[] { string.Join(",", captures) }));
                 }
             }
         }
@@ -93,7 +95,7 @@
                 var containingSymbol = semanticModel.GetSymbolInfo(node).Symbol.ContainingSymbol as IMethodSymbol;
                 if (containingSymbol != null && containingSymbol.Arity > 0)
                 {
-                    addDiagnostic(Diagnostic.Create(LambaOrAnonymousMethodInGenericMethodRule, location));
+                    addDiagnostic(Diagnostic.Create(LambaOrAnonymousMethodInGenericMethodRule, location, EmptyMessageArgs));
                 }
             }
         }

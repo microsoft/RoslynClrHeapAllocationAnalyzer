@@ -12,9 +12,11 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class ConcatenationAllocationAnalyzer : ISyntaxNodeAnalyzer<SyntaxKind>
     {
-        internal static DiagnosticDescriptor StringConcatenationAllocationRule = new DiagnosticDescriptor("Implicit string concatenation allocation", string.Empty, "Considering using StringBuilder", "Usage", DiagnosticSeverity.Warning, true, string.Empty, "http://msdn.microsoft.com/en-us/library/2839d5h5(v=vs.110).aspx");
+        internal static DiagnosticDescriptor StringConcatenationAllocationRule = new DiagnosticDescriptor("HeapAnalyzerStringConcatRule", "Implicit string concatenation allocation", "Considering using StringBuilder", "Performance", DiagnosticSeverity.Warning, true, string.Empty, "http://msdn.microsoft.com/en-us/library/2839d5h5(v=vs.110).aspx");
 
-        internal static DiagnosticDescriptor ValueTypeToReferenceTypeInAStringConcatenationRule = new DiagnosticDescriptor("Value type to reference type conversion allocation for string concatenation", string.Empty, "Value type ({0}) is being boxed to a reference type for a string concatenation.", "Performance", DiagnosticSeverity.Warning, true, string.Empty, "http://msdn.microsoft.com/en-us/library/yz2be5wk.aspx");
+        internal static DiagnosticDescriptor ValueTypeToReferenceTypeInAStringConcatenationRule = new DiagnosticDescriptor("HeapAnalyzerBoxingRule", "Value type to reference type conversion allocation for string concatenation", "Value type ({0}) is being boxed to a reference type for a string concatenation.", "Performance", DiagnosticSeverity.Warning, true, string.Empty, "http://msdn.microsoft.com/en-us/library/yz2be5wk.aspx");
+
+        internal static object[] EmptyMessageArgs = { };
 
         public ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
@@ -50,7 +52,7 @@
                     // regular string allocation
                     if (left.Type != null && left.Type.SpecialType == SpecialType.System_String || right.Type != null && right.Type.SpecialType == SpecialType.System_String)
                     {
-                        addDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, binaryExpression.OperatorToken.GetLocation()));
+                        addDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
                         HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
                     }
                 }
@@ -61,7 +63,7 @@
         {
             if (typeInfo.Type != null && typeInfo.Type.IsValueType && typeInfo.ConvertedType != null && !typeInfo.ConvertedType.IsValueType)
             {
-                addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeInAStringConcatenationRule, expression.GetLocation(), typeInfo.Type.ToDisplayString()));
+                addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeInAStringConcatenationRule, expression.GetLocation(), new object[] { typeInfo.Type.ToDisplayString() }));
                 HeapAllocationAnalyzerEventSource.Logger.BoxingAllocationInStringConcatenation(filePath);
             }
         }

@@ -11,7 +11,9 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class EnumeratorAllocationAnalyzer : ISyntaxNodeAnalyzer<SyntaxKind>
     {
-        internal static DiagnosticDescriptor ReferenceTypeEnumeratorRule = new DiagnosticDescriptor("Reference type enumerator, possible allocation", string.Empty, "Enumerator is not of a value type, and so it is possible that this results in an enumerator allocation", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor ReferenceTypeEnumeratorRule = new DiagnosticDescriptor("HeapAnalyzerEnumeratorAllocationRule", "Reference type enumerator, possible allocation", "Enumerator is not of a value type, and so it is possible that this results in an enumerator allocation", "Performance", DiagnosticSeverity.Warning, true);
+
+        internal static object[] EmptyMessageArgs = { };
 
         public ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
@@ -47,7 +49,7 @@
                         {
                             if (methodSymbol.ReturnType.IsReferenceType)
                             {
-                                addDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, foreachExpression.InKeyword.GetLocation()));
+                                addDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, foreachExpression.InKeyword.GetLocation(), EmptyMessageArgs));
                                 HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
                             }
                         }
@@ -71,7 +73,7 @@
                             {
                                 if (@interface.SpecialType == SpecialType.System_Collections_Generic_IEnumerator_T || @interface.SpecialType == SpecialType.System_Collections_IEnumerator)
                                 {
-                                    addDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, invocationExpression.GetLocation()));
+                                    addDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, invocationExpression.GetLocation(), EmptyMessageArgs));
                                     HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
                                 }
                             }

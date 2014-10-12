@@ -11,11 +11,13 @@ namespace ClrHeapAllocationAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class TypeConversionAllocationAnalyzer : ISyntaxNodeAnalyzer<SyntaxKind>
     {
-        internal static DiagnosticDescriptor ValueTypeToReferenceTypeConversionRule = new DiagnosticDescriptor("Value type to reference type conversion causing boxing allocation", string.Empty, "Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor ValueTypeToReferenceTypeConversionRule = new DiagnosticDescriptor("HeapAnalyzerBoxingRule", "Value type to reference type conversion causing boxing allocation", "Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable", "Performance", DiagnosticSeverity.Warning, true);
 
-        internal static DiagnosticDescriptor DelegateOnStructInstanceRule = new DiagnosticDescriptor("Delegate on struct instance caused a boxing allocation", string.Empty, "Struct instance method being used for delegate creation, this will result in a boxing instruction", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor DelegateOnStructInstanceRule = new DiagnosticDescriptor("HeapAnalyzerDelegateOnStructRule", "Delegate on struct instance caused a boxing allocation", "Struct instance method being used for delegate creation, this will result in a boxing instruction", "Performance", DiagnosticSeverity.Warning, true);
 
-        internal static DiagnosticDescriptor MethodGroupAllocationRule = new DiagnosticDescriptor("Delegate allocation from a method group", string.Empty, "This will allocate a delegate instance", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor MethodGroupAllocationRule = new DiagnosticDescriptor("HeapAnalyzerMethodGroupAllocationRule", "Delegate allocation from a method group", "This will allocate a delegate instance", "Performance", DiagnosticSeverity.Warning, true);
+
+        internal static object[] EmptyMessageArgs = { };
 
         public ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
@@ -29,7 +31,7 @@ namespace ClrHeapAllocationAnalyzer
         {
             get
             {
-                return ImmutableArray.Create(
+                return ImmutableArray.Create(new[] {
                     SyntaxKind.SimpleAssignmentExpression,
                     SyntaxKind.ReturnStatement,
                     SyntaxKind.YieldReturnStatement,
@@ -39,7 +41,7 @@ namespace ClrHeapAllocationAnalyzer
                     SyntaxKind.ConditionalExpression,
                     SyntaxKind.ForEachStatement,
                     SyntaxKind.EqualsValueClause,
-                    SyntaxKind.Argument);
+                    SyntaxKind.Argument});
             }
         }
 
@@ -148,7 +150,7 @@ namespace ClrHeapAllocationAnalyzer
 
                 if (leftT.Type != null && leftT.Type.IsValueType && rightT.Type != null && rightT.Type.IsReferenceType)
                 {
-                    addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, binaryExpression.Left.GetLocation()));
+                    addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, binaryExpression.Left.GetLocation(), EmptyMessageArgs));
                     HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
                 }
 
@@ -174,7 +176,7 @@ namespace ClrHeapAllocationAnalyzer
 
                 if (castTypeInfo.Type != null && expressionTypeInfo.Type != null && castTypeInfo.Type.IsReferenceType && expressionTypeInfo.Type.IsValueType)
                 {
-                    addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, castExpression.Expression.GetLocation()));
+                    addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, castExpression.Expression.GetLocation(), EmptyMessageArgs));
                 }
             }
         }
@@ -208,14 +210,14 @@ namespace ClrHeapAllocationAnalyzer
                     var arraySymbol = typeInfo.Type as IArrayTypeSymbol;
                     if (arraySymbol != null && arraySymbol.ElementType.IsValueType)
                     {
-                        addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, foreachExpression.Expression.GetLocation()));
+                        addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, foreachExpression.Expression.GetLocation(), EmptyMessageArgs));
                         return;
                     }
 
                     var namedTypeSymbol = typeInfo.Type as INamedTypeSymbol;
                     if (namedTypeSymbol != null && namedTypeSymbol.Arity == 1 && namedTypeSymbol.TypeArguments[0].IsValueType)
                     {
-                        addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, foreachExpression.Expression.GetLocation()));
+                        addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, foreachExpression.Expression.GetLocation(), EmptyMessageArgs));
                         return;
                     }
                 }
@@ -237,7 +239,7 @@ namespace ClrHeapAllocationAnalyzer
         {
             if (typeInfo.Type != null && typeInfo.ConvertedType != null && typeInfo.Type.IsValueType && !typeInfo.ConvertedType.IsValueType)
             {
-                addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, location));
+                addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, location, EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
             }
         }
@@ -254,14 +256,21 @@ namespace ClrHeapAllocationAnalyzer
                 }
                 else
                 {
-                    addDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location));
-                    HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                    if (node.CSharpKind() == SyntaxKind.IdentifierName)
+                    {
+                        var symbol = semanticModel.GetSymbolInfo(node).Symbol as IMethodSymbol;
+                        if (symbol != null)
+                        {
+                            addDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
+                            HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                        }
+                    }
                 }
 
                 var symbolInfo = semanticModel.GetSymbolInfo(node).Symbol;
                 if (symbolInfo != null && symbolInfo.ContainingType != null && symbolInfo.ContainingType.IsValueType)
                 {
-                    addDiagnostic(Diagnostic.Create(DelegateOnStructInstanceRule, location));
+                    addDiagnostic(Diagnostic.Create(DelegateOnStructInstanceRule, location, EmptyMessageArgs));
                 }
             }
         }

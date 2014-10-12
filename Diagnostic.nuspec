@@ -2,8 +2,8 @@
 <package>
   <metadata>
     <id>ClrHeapAllocationAnalyzer</id>
-    <version>1.0.0.1</version>
-    <title>ClrHeapAllocationAnalyzer</title>
+    <version>1.0.0.2</version>
+    <title>Clr Heap Allocation Analyzer</title>
     <authors>mjsabby</authors>
     <owners>mjsabby</owners>
     <licenseUrl>https://github.com/mjsabby/RoslynClrHeapAllocationAnalyzer/blob/master/LICENSE</licenseUrl>
@@ -17,7 +17,7 @@
       NOTE: This is the build analyzer.
       NOTE: You require ' ' ' ' Visual Studio 2014 CTP 4 ' ' ' ' for this to work.
     </description>
-    <releaseNotes>Fixes the build issue.</releaseNotes>
+    <releaseNotes>A few fixes that were left out due to merge issue. False positive on method groups, and new array was missing.</releaseNotes>
     <copyright>Copyright</copyright>
     <tags>clr allocations boxing closure displayclass delegate enumerator newobj roslyn analyzer diagnostic</tags>
     <frameworkAssemblies>

@@ -7,13 +7,16 @@
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
     using Microsoft.CodeAnalysis.Diagnostics;
+    using System.Runtime.CompilerServices;
 
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class CallSiteImplicitAllocationAnalyzer : ISyntaxNodeAnalyzer<SyntaxKind>
     {
-        internal static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor("Array allocation for params parameter", string.Empty, "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor("HeapAnalyzerImplicitParamsRule", "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", "Performance", DiagnosticSeverity.Warning, true);
 
-        internal static DiagnosticDescriptor ValueTypeNonOverridenCallRule = new DiagnosticDescriptor("Non-overriden virtual method call on value type", string.Empty, "Non-overriden virtual method call on a value type adds a boxing or constrained instruction", "Performance", DiagnosticSeverity.Warning, true);
+        internal static DiagnosticDescriptor ValueTypeNonOverridenCallRule = new DiagnosticDescriptor("HeapAnalyzerValueTypeNonOverridenCallRule", "Non-overriden virtual method call on value type", "Non-overriden virtual method call on a value type adds a boxing or constrained instruction", "Performance", DiagnosticSeverity.Warning, true);
+
+        internal static object[] EmptyMessageArgs = { };
 
         public ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
         {
@@ -37,19 +40,12 @@
 
             var invocationExpression = node as InvocationExpressionSyntax;
             var methodInfo = semanticModel.GetSymbolInfo(invocationExpression).Symbol as IMethodSymbol;
-            if (methodInfo != null)
+            if (methodInfo != null && methodInfo.Parameters != null && methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
             {
-                var parameters = methodInfo.Parameters;
-                if (parameters != null)
+                var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
+                if (lastParam.IsParams)
                 {
-                    foreach (var parameter in parameters)
-                    {
-                        if (parameter.IsParams)
-                        {
-                            addDiagnostic(Diagnostic.Create(ParamsParameterRule, node.GetLocation()));
-                            HeapAllocationAnalyzerEventSource.Logger.ParamsAllocation(filePath);
-                        }
-                    }
+                    CheckParam(invocationExpression, methodInfo, semanticModel, addDiagnostic, filePath);
                 }
 
                 if (methodInfo.ContainingType != null)
@@ -58,9 +54,30 @@
                     var containingType = methodInfo.ContainingType.ToString();
                     if (string.Equals(containingType, "System.ValueType", StringComparison.OrdinalIgnoreCase) || string.Equals(containingType, "System.Enum", StringComparison.OrdinalIgnoreCase))
                     {
-                        addDiagnostic(Diagnostic.Create(ValueTypeNonOverridenCallRule, node.GetLocation()));
+                        addDiagnostic(Diagnostic.Create(ValueTypeNonOverridenCallRule, node.GetLocation(), EmptyMessageArgs));
                         HeapAllocationAnalyzerEventSource.Logger.NonOverridenVirtualMethodCallOnValueType(filePath);
                     }
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void CheckParam(InvocationExpressionSyntax invocationExpression, IMethodSymbol methodInfo, SemanticModel semanticModel, Action<Diagnostic> addDiagnostic, string filePath)
+        {
+            var arguments = invocationExpression.ArgumentList.Arguments;
+            if (arguments.Count != methodInfo.Parameters.Length)
+            {
+                addDiagnostic(Diagnostic.Create(ParamsParameterRule, invocationExpression.GetLocation(), EmptyMessageArgs));
+                HeapAllocationAnalyzerEventSource.Logger.ParamsAllocation(filePath);
+            }
+            else
+            {
+                var lastIndex = arguments.Count - 1;
+                var lastArgumentTypeInfo = semanticModel.GetTypeInfo(arguments[lastIndex].Expression);
+                if (lastArgumentTypeInfo.Type != null && !lastArgumentTypeInfo.Type.Equals(methodInfo.Parameters[lastIndex].Type))
+                {
+                    addDiagnostic(Diagnostic.Create(ParamsParameterRule, invocationExpression.GetLocation(), EmptyMessageArgs));
+                    HeapAllocationAnalyzerEventSource.Logger.ParamsAllocation(filePath);
                 }
             }
         }

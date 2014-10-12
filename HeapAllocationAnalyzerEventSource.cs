@@ -109,5 +109,13 @@
                 this.WriteEvent(13, filePath);
             }
         }
+
+        public void NewArrayExpression(string filePath)
+        {
+            if (this.IsEnabled())
+            {
+                this.WriteEvent(14, filePath);
+            }
+        }
     }
 }
