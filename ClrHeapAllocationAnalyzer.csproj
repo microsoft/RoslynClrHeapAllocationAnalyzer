@@ -102,6 +102,7 @@
       <IncludeInVSIX>true</IncludeInVSIX>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <None Include="LICENSE" />
     <None Include="packages.config" />
     <None Include="README.md" />
     <None Include="source.extension.vsixmanifest">
