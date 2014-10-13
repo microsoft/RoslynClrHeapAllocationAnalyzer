@@ -40,22 +40,16 @@
 
             var invocationExpression = node as InvocationExpressionSyntax;
             var methodInfo = semanticModel.GetSymbolInfo(invocationExpression).Symbol as IMethodSymbol;
-            if (methodInfo != null && methodInfo.Parameters != null && methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
-            {
-                var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
-                if (lastParam.IsParams)
-                {
-                    CheckParam(invocationExpression, methodInfo, semanticModel, addDiagnostic, filePath);
-                }
 
-                if (methodInfo.ContainingType != null)
+            if (methodInfo != null)
+            {
+                CheckNonOverridenMethodOnStruct(methodInfo, addDiagnostic, invocationExpression, filePath);
+                if (methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
                 {
-                    // hack? Hmmm.
-                    var containingType = methodInfo.ContainingType.ToString();
-                    if (string.Equals(containingType, "System.ValueType", StringComparison.OrdinalIgnoreCase) || string.Equals(containingType, "System.Enum", StringComparison.OrdinalIgnoreCase))
+                    var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
+                    if (lastParam.IsParams)
                     {
-                        addDiagnostic(Diagnostic.Create(ValueTypeNonOverridenCallRule, node.GetLocation(), EmptyMessageArgs));
-                        HeapAllocationAnalyzerEventSource.Logger.NonOverridenVirtualMethodCallOnValueType(filePath);
+                        CheckParam(invocationExpression, methodInfo, semanticModel, addDiagnostic, filePath);
                     }
                 }
             }
@@ -78,6 +72,20 @@
                 {
                     addDiagnostic(Diagnostic.Create(ParamsParameterRule, invocationExpression.GetLocation(), EmptyMessageArgs));
                     HeapAllocationAnalyzerEventSource.Logger.ParamsAllocation(filePath);
+                }
+            }
+        }
+
+        private static void CheckNonOverridenMethodOnStruct(IMethodSymbol methodInfo, Action<Diagnostic> addDiagnostic, SyntaxNode node, string filePath)
+        {
+            if (methodInfo.ContainingType != null)
+            {
+                // hack? Hmmm.
+                var containingType = methodInfo.ContainingType.ToString();
+                if (string.Equals(containingType, "System.ValueType", StringComparison.OrdinalIgnoreCase) || string.Equals(containingType, "System.Enum", StringComparison.OrdinalIgnoreCase))
+                {
+                    addDiagnostic(Diagnostic.Create(ValueTypeNonOverridenCallRule, node.GetLocation(), EmptyMessageArgs));
+                    HeapAllocationAnalyzerEventSource.Logger.NonOverridenVirtualMethodCallOnValueType(filePath);
                 }
             }
         }
