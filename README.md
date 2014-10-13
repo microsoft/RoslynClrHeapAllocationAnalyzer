@@ -3,7 +3,7 @@ Roslyn Clr Heap Allocation Analyzer
 
 Quick Video: https://www.youtube.com/watch?v=Tw-wgT-cXYU
 
-Download: **https://github.com/mjsabby/RoslynClrHeapAllocationAnalyzer/releases/tag/1.0**
+Download: **https://github.com/mjsabby/RoslynClrHeapAllocationAnalyzer/releases**
 
 Roslyn based C# heap allocation diagnostic analyzer that can detect explicit and many implicit allocations like boxing, display classes a.k.a closures, implicit delegate creations, etc.
 
