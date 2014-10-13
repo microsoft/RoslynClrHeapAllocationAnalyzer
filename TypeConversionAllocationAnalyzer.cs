@@ -215,10 +215,14 @@ namespace ClrHeapAllocationAnalyzer
                     }
 
                     var namedTypeSymbol = typeInfo.Type as INamedTypeSymbol;
-                    if (namedTypeSymbol != null && namedTypeSymbol.Arity == 1 && namedTypeSymbol.TypeArguments[0].IsValueType)
+                    if (namedTypeSymbol != null && namedTypeSymbol.Arity == 1 && namedTypeSymbol.TypeArguments[0].IsValueType && foreachExpression.Type != null)
                     {
-                        addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, foreachExpression.Expression.GetLocation(), EmptyMessageArgs));
-                        return;
+                        var leftHandType = semanticModel.GetTypeInfo(foreachExpression.Type).Type;
+                        if (leftHandType != null && leftHandType.IsReferenceType)
+                        {
+                            addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, foreachExpression.Expression.GetLocation(), EmptyMessageArgs));
+                            return;
+                        }
                     }
                 }
             }

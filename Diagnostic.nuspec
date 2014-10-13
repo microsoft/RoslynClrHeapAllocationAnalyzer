@@ -2,8 +2,8 @@
 <package>
   <metadata>
     <id>ClrHeapAllocationAnalyzer</id>
-    <version>1.0.0.4</version>
-    <title>Clr Heap Allocation Analyzer</title>
+    <version>1.0.0.5</version>
+    <title>Clr C# Heap Allocation Analyzer</title>
     <authors>mjsabby</authors>
     <owners>mjsabby</owners>
     <licenseUrl>https://github.com/mjsabby/RoslynClrHeapAllocationAnalyzer/blob/master/LICENSE</licenseUrl>
