@@ -37,15 +37,18 @@
         {
             get
             {
-                return ImmutableArray.Create(new [] { SyntaxKind.ObjectCreationExpression,
-                    SyntaxKind.AnonymousObjectCreationExpression,
-                    SyntaxKind.ArrayInitializerExpression,
-                    SyntaxKind.CollectionInitializerExpression,
-                    SyntaxKind.ComplexElementInitializerExpression,
-                    SyntaxKind.ObjectInitializerExpression,
-                    SyntaxKind.ArrayCreationExpression,
-                    SyntaxKind.ImplicitArrayCreationExpression,
-                    SyntaxKind.LetClause });
+                return ImmutableArray.Create(new [] 
+                    {
+                        SyntaxKind.ObjectCreationExpression,            // Used
+                        SyntaxKind.AnonymousObjectCreationExpression,   // Used
+                        SyntaxKind.ArrayInitializerExpression,          // Used (this is inside an ImplicitArrayCreationExpression)
+                        SyntaxKind.CollectionInitializerExpression,     // Is this used anywhere?
+                        SyntaxKind.ComplexElementInitializerExpression, // Is this used anywhere? For what this is see http://source.roslyn.codeplex.com/#Microsoft.CodeAnalysis.CSharp/Compilation/CSharpSemanticModel.cs,80
+                        SyntaxKind.ObjectInitializerExpression,         // Used linked to InitializerExpressionSyntax
+                        SyntaxKind.ArrayCreationExpression,             // Used
+                        SyntaxKind.ImplicitArrayCreationExpression,     // Used (this then contains an ArrayInitializerExpression)
+                        SyntaxKind.LetClause                            // Used
+                    });
             }
         }
 
@@ -53,12 +56,23 @@
         {
             string filePath = node.SyntaxTree.FilePath;
 
+            // An InitializerExpressionSyntax has an ObjectCreationExpressionSyntax as it's parent, i.e
+            // var testing = new TestClass { Name = "Bob" };
+            //               |             |--------------| <- InitializerExpressionSyntax or SyntaxKind.ObjectInitializerExpression
+            //               |----------------------------| <- ObjectCreationExpressionSyntax or SyntaxKind.ObjectCreationExpression
             var initializerExpression = node as InitializerExpressionSyntax;
-            if (initializerExpression != null && node.Parent != null && node.Parent.IsKind(SyntaxKind.EqualsValueClause) && node.Parent.Parent != null && node.Parent.Parent.IsKind(SyntaxKind.VariableDeclarator))
+            if (initializerExpression != null && node.Parent is ObjectCreationExpressionSyntax)
             {
-                addDiagnostic(Diagnostic.Create(InitializerCreationRule, ((VariableDeclaratorSyntax)node.Parent.Parent).Identifier.GetLocation(), EmptyMessageArgs));
-                HeapAllocationAnalyzerEventSource.Logger.NewInitializerExpression(filePath);
-                return;
+                var objectCreation = node.Parent as ObjectCreationExpressionSyntax;
+                var typeInfo = semanticModel.GetTypeInfo(objectCreation);
+                if (typeInfo.ConvertedType != null && typeInfo.ConvertedType.TypeKind != TypeKind.Error && typeInfo.ConvertedType.IsReferenceType &&
+                    objectCreation.Parent != null && objectCreation.Parent.IsKind(SyntaxKind.EqualsValueClause) &&
+                    objectCreation.Parent.Parent != null && objectCreation.Parent.Parent.IsKind(SyntaxKind.VariableDeclarator))
+                {
+                    addDiagnostic(Diagnostic.Create(InitializerCreationRule, ((VariableDeclaratorSyntax)objectCreation.Parent.Parent).Identifier.GetLocation(), EmptyMessageArgs));
+                    HeapAllocationAnalyzerEventSource.Logger.NewInitializerExpression(filePath);
+                    return;
+                }
             }
 
             var implicitArrayExpression = node as ImplicitArrayCreationExpressionSyntax;
@@ -80,7 +94,7 @@
             var newArr = node as ArrayCreationExpressionSyntax;
             if (newArr != null)
             {
-                addDiagnostic(Diagnostic.Create(NewObjectRule, newArr.NewKeyword.GetLocation(), EmptyMessageArgs));
+                addDiagnostic(Diagnostic.Create(NewArrayRule, newArr.NewKeyword.GetLocation(), EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.NewArrayExpression(filePath);
                 return;
             }
@@ -94,7 +108,6 @@
                     addDiagnostic(Diagnostic.Create(NewObjectRule, newObj.NewKeyword.GetLocation(), EmptyMessageArgs));
                     HeapAllocationAnalyzerEventSource.Logger.NewObjectCreationExpression(filePath);
                 }
-
                 return;
             }
 
