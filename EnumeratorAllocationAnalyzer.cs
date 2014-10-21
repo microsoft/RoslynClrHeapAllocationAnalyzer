@@ -42,15 +42,16 @@
                 var typeInfo = semanticModel.GetTypeInfo(foreachExpression.Expression);
                 if (typeInfo.Type != null)
                 {
+                    // Regular way of getting the enumerator
                     var enumerator = typeInfo.Type.GetMembers("GetEnumerator");
-                    if (enumerator == null || enumerator.Length == 0)
+                    if ((enumerator == null || enumerator.Length == 0) && typeInfo.ConvertedType != null)
                     {
-                        // Fallback to the ConvertedType
+                        // 1st we try and fallback to using the ConvertedType
                         enumerator = typeInfo.ConvertedType.GetMembers("GetEnumerator");
                     }
-                    if (enumerator == null || enumerator.Length == 0)
+                    if ((enumerator == null || enumerator.Length == 0) && typeInfo.Type.Interfaces != null)
                     {
-                        // 2nd Fallback, now find the IEnumerable Interface explicitly
+                        // 2nd fallback, now we try and find the IEnumerable Interface explicitly
                         var iEnumerable = typeInfo.Type.Interfaces.WhereAsArray(i => i.Name == "IEnumerable");
                         if (iEnumerable != null && iEnumerable.Length > 0)
                         {
