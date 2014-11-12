@@ -7,7 +7,6 @@
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
     using Microsoft.CodeAnalysis.Diagnostics;
-    using System.Collections;
 
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class EnumeratorAllocationAnalyzer : ISyntaxNodeAnalyzer<SyntaxKind>
@@ -40,35 +39,36 @@
             if (foreachExpression != null)
             {
                 var typeInfo = semanticModel.GetTypeInfo(foreachExpression.Expression);
-                if (typeInfo.Type != null)
+                if (typeInfo.Type == null)
+                    return;
+
+                // Regular way of getting the enumerator
+                ImmutableArray<ISymbol> enumerator = typeInfo.Type.GetMembers("GetEnumerator");
+                if ((enumerator == null || enumerator.Length == 0) && typeInfo.ConvertedType != null)
                 {
-                    // Regular way of getting the enumerator
-                    var enumerator = typeInfo.Type.GetMembers("GetEnumerator");
-                    if ((enumerator == null || enumerator.Length == 0) && typeInfo.ConvertedType != null)
+                    // 1st we try and fallback to using the ConvertedType
+                    enumerator = typeInfo.ConvertedType.GetMembers("GetEnumerator");
+                }
+                if ((enumerator == null || enumerator.Length == 0) && typeInfo.Type.Interfaces != null)
+                {
+                    // 2nd fallback, now we try and find the IEnumerable Interface explicitly
+                    var iEnumerable = typeInfo.Type.Interfaces.WhereAsArray(i => i.Name == "IEnumerable");
+                    if (iEnumerable != null && iEnumerable.Length > 0)
                     {
-                        // 1st we try and fallback to using the ConvertedType
-                        enumerator = typeInfo.ConvertedType.GetMembers("GetEnumerator");
+                        enumerator = iEnumerable[0].GetMembers("GetEnumerator");
                     }
-                    if ((enumerator == null || enumerator.Length == 0) && typeInfo.Type.Interfaces != null)
+                }
+
+                if (enumerator != null && enumerator.Length > 0)
+                {
+                    var methodSymbol = enumerator[0] as IMethodSymbol; // probably should do something better here, hack.
+                    if (methodSymbol != null)
                     {
-                        // 2nd fallback, now we try and find the IEnumerable Interface explicitly
-                        var iEnumerable = typeInfo.Type.Interfaces.WhereAsArray(i => i.Name == "IEnumerable");
-                        if (iEnumerable != null && iEnumerable.Length > 0)
+                        if (methodSymbol.ReturnType.IsReferenceType &&
+                            methodSymbol.ReturnType.SpecialType != SpecialType.System_Collections_IEnumerator)
                         {
-                            enumerator = iEnumerable[0].GetMembers("GetEnumerator");
-                        }
-                    }
-                    if (enumerator != null && enumerator.Length > 0)
-                    {
-                        var methodSymbol = enumerator[0] as IMethodSymbol; // probably should do something better here, hack.
-                        if (methodSymbol != null)
-                        {
-                            if (methodSymbol.ReturnType.IsReferenceType &&
-                                methodSymbol.ReturnType.SpecialType != SpecialType.System_Collections_IEnumerator)
-                            {
-                                addDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, foreachExpression.InKeyword.GetLocation(), EmptyMessageArgs));
-                                HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
-                            }
+                            addDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, foreachExpression.InKeyword.GetLocation(), EmptyMessageArgs));
+                            HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
                         }
                     }
                 }

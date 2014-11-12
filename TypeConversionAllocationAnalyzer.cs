@@ -218,7 +218,7 @@ namespace ClrHeapAllocationAnalyzer
                     if (namedTypeSymbol != null && namedTypeSymbol.Arity == 1 && namedTypeSymbol.TypeArguments[0].IsValueType && foreachExpression.Type != null)
                     {
                         var leftHandType = semanticModel.GetTypeInfo(foreachExpression.Type).Type;
-                        if (leftHandType != null && leftHandType.IsReferenceType)
+                        if (leftHandType != null && leftHandType.IsValueType) 
                         {
                             addDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, foreachExpression.Expression.GetLocation(), EmptyMessageArgs));
                             return;
@@ -254,7 +254,10 @@ namespace ClrHeapAllocationAnalyzer
             if (typeInfo.ConvertedType != null && typeInfo.ConvertedType.TypeKind == TypeKind.Delegate)
             {
                 // new Action<Foo>(MethodGroup); should skip this one
-                if (node is ParenthesizedLambdaExpressionSyntax || node is SimpleLambdaExpressionSyntax || node is AnonymousMethodExpressionSyntax || node is ObjectCreationExpressionSyntax || (node.Parent != null && node.Parent.Parent != null && node.Parent.Parent.Parent != null && node.Parent.Parent.Parent.CSharpKind() == SyntaxKind.ObjectCreationExpression))
+                var insideObjectCreation = (node.Parent != null && node.Parent.Parent != null && node.Parent.Parent.Parent != null &&
+                                            (node.Parent.Parent.Parent.CSharpKind() == SyntaxKind.ObjectCreationExpression));
+                if (node is ParenthesizedLambdaExpressionSyntax || node is SimpleLambdaExpressionSyntax ||
+                    node is AnonymousMethodExpressionSyntax || node is ObjectCreationExpressionSyntax || insideObjectCreation)
                 {
                     // skip this, because it's intended.
                 }
@@ -263,6 +266,16 @@ namespace ClrHeapAllocationAnalyzer
                     if (node.CSharpKind() == SyntaxKind.IdentifierName)
                     {
                         var symbol = semanticModel.GetSymbolInfo(node).Symbol as IMethodSymbol;
+                        if (symbol != null)
+                        {
+                            addDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
+                            HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                        }
+                    }
+                    else if (node.CSharpKind() == SyntaxKind.SimpleMemberAccessExpression)
+                    {
+                        var memberAccess = node as MemberAccessExpressionSyntax;
+                        var symbol = semanticModel.GetSymbolInfo(memberAccess.Name).Symbol as IMethodSymbol;
                         if (symbol != null)
                         {
                             addDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));

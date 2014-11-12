@@ -1,13 +1,7 @@
 ﻿using ClrHeapAllocationAnalyzer;
-using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Threading;
 
 namespace ClrHeapAllocationsAnalyzer.Test
 {
@@ -15,7 +9,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
     public class EnumeratorAllocationAnalyzerTests : AllocationAnalyzerTests
     {
         [TestMethod]
-        public void Enumerator_Basic()
+        public void EnumeratorAllocation_Basic()
         {
             var sampleProgram =
 @"using System.Collections.Generic;
@@ -36,18 +30,18 @@ foreach (var i in listData)
     Console.WriteLine(i);
 }
 
-foreach (var i in iListData) // Allocations
+foreach (var i in iListData) // Allocations (line 19)
 {
     Console.WriteLine(i);
 }
 
-foreach (var i in (IEnumerable<int>)intData) // Allocations
+foreach (var i in (IEnumerable<int>)intData) // Allocations (line 24)
 {
     Console.WriteLine(i);
 }";
 
             var analyser = new EnumeratorAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.ForEachStatement));
 
             Assert.AreEqual(2, info.Allocations.Count);
             // Diagnostic: (19,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in an heap allocation
@@ -57,7 +51,7 @@ foreach (var i in (IEnumerable<int>)intData) // Allocations
         }
 
         [TestMethod]
-        public void Enumerator_Advanced()
+        public void EnumeratorAllocation_Advanced()
         {
             var sampleProgram =
 @"using System.Collections.Generic;
@@ -88,7 +82,7 @@ foreach (var f in fx2) // NO Allocations
         }
 
         [TestMethod]
-        public void Enumerator_Via_InvocationExpressionSyntax()
+        public void EnumeratorAllocation_Via_InvocationExpressionSyntax()
         {
             var sampleProgram =
 @"using System.Collections.Generic;
