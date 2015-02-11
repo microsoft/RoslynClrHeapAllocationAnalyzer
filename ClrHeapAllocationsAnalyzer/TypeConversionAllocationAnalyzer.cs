@@ -52,6 +52,7 @@
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
+            var cancellationToken = context.CancellationToken;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
             string filePath = node.SyntaxTree.FilePath;
 
@@ -59,20 +60,20 @@
             // new myobject(10);
             if (node is ArgumentSyntax)
             {
-                ArgumentSyntaxCheck(node, semanticModel, reportDiagnostic, filePath);
+                ArgumentSyntaxCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
             }
 
             // object foo { get { return 0; } }
             if (node is ReturnStatementSyntax)
             {
-                ReturnStatementExpressionCheck(node, semanticModel, reportDiagnostic, filePath);
+                ReturnStatementExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // yield return 0
             if (node is YieldStatementSyntax)
             {
-                YieldReturnStatementExpressionCheck(node, semanticModel, reportDiagnostic, filePath);
+                YieldReturnStatementExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
@@ -80,79 +81,79 @@
             // var a = 10 as object;
             if (node is BinaryExpressionSyntax)
             {
-                BinaryExpressionCheck(node, semanticModel, reportDiagnostic, filePath);
+                BinaryExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // foreach (var a in new[] ...)
             if (node is ForEachStatementSyntax)
             {
-                ForEachExpressionCheck(node, semanticModel, reportDiagnostic, filePath);
+                ForEachExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // for (object i = 0;;)
             if (node is EqualsValueClauseSyntax)
             {
-                EqualsValueClauseCheck(node, semanticModel, reportDiagnostic, filePath);
+                EqualsValueClauseCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // object = true ? 0 : obj
             if (node is ConditionalExpressionSyntax)
             {
-                ConditionalExpressionCheck(node, semanticModel, reportDiagnostic, filePath);
+                ConditionalExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // var f = (object)
             if (node is CastExpressionSyntax)
             {
-                CastExpressionCheck(node, semanticModel, reportDiagnostic, filePath);
+                CastExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
         }
 
-        private static void ReturnStatementExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
+        private static void ReturnStatementExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var returnStatementExpression = node as ReturnStatementSyntax;
             if (returnStatementExpression.Expression != null)
             {
-                var returnTypeInfo = semanticModel.GetTypeInfo(returnStatementExpression.Expression);
+                var returnTypeInfo = semanticModel.GetTypeInfo(returnStatementExpression.Expression, cancellationToken);
                 CheckTypeConversion(returnTypeInfo, reportDiagnostic, returnStatementExpression.Expression.GetLocation(), filePath);
             }
         }
 
-        private static void YieldReturnStatementExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
+        private static void YieldReturnStatementExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var yieldExpression = node as YieldStatementSyntax;
             if (yieldExpression.Expression != null)
             {
-                var returnTypeInfo = semanticModel.GetTypeInfo(yieldExpression.Expression);
+                var returnTypeInfo = semanticModel.GetTypeInfo(yieldExpression.Expression, cancellationToken);
                 CheckTypeConversion(returnTypeInfo, reportDiagnostic, yieldExpression.Expression.GetLocation(), filePath);
             }
         }
 
-        private static void ArgumentSyntaxCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
+        private static void ArgumentSyntaxCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var argument = node as ArgumentSyntax;
             if (argument.Expression != null)
             {
-                var argumentTypeInfo = semanticModel.GetTypeInfo(argument.Expression);
+                var argumentTypeInfo = semanticModel.GetTypeInfo(argument.Expression, cancellationToken);
                 CheckTypeConversion(argumentTypeInfo, reportDiagnostic, argument.Expression.GetLocation(), filePath);
-                CheckDelegateCreation(argument.Expression, argumentTypeInfo, semanticModel, reportDiagnostic, argument.Expression.GetLocation(), filePath);
+                CheckDelegateCreation(argument.Expression, argumentTypeInfo, semanticModel, reportDiagnostic, argument.Expression.GetLocation(), filePath, cancellationToken);
             }
         }
 
-        private static void BinaryExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
+        private static void BinaryExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var binaryExpression = node as BinaryExpressionSyntax;
 
             // as expression
             if (binaryExpression.Kind() == SyntaxKind.AsExpression && binaryExpression.Left != null && binaryExpression.Right != null)
             {
-                var leftT = semanticModel.GetTypeInfo(binaryExpression.Left);
-                var rightT = semanticModel.GetTypeInfo(binaryExpression.Right);
+                var leftT = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
+                var rightT = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
 
                 if (leftT.Type != null && leftT.Type.IsValueType && rightT.Type != null && rightT.Type.IsReferenceType)
                 {
@@ -165,20 +166,20 @@
 
             if (binaryExpression.Right != null)
             {
-                var assignmentExprTypeInfo = semanticModel.GetTypeInfo(binaryExpression.Right);
+                var assignmentExprTypeInfo = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
                 CheckTypeConversion(assignmentExprTypeInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
-                CheckDelegateCreation(binaryExpression.Right, assignmentExprTypeInfo, semanticModel, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
+                CheckDelegateCreation(binaryExpression.Right, assignmentExprTypeInfo, semanticModel, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
                 return;
             }
         }
 
-        private static void CastExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
+        private static void CastExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var castExpression = node as CastExpressionSyntax;
             if (castExpression.Expression != null)
             {
-                var castTypeInfo = semanticModel.GetTypeInfo(castExpression);
-                var expressionTypeInfo = semanticModel.GetTypeInfo(castExpression.Expression);
+                var castTypeInfo = semanticModel.GetTypeInfo(castExpression, cancellationToken);
+                var expressionTypeInfo = semanticModel.GetTypeInfo(castExpression.Expression, cancellationToken);
 
                 if (castTypeInfo.Type != null && expressionTypeInfo.Type != null && castTypeInfo.Type.IsReferenceType && expressionTypeInfo.Type.IsValueType)
                 {
@@ -187,7 +188,7 @@
             }
         }
 
-        private static void ConditionalExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
+        private static void ConditionalExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var conditionalExpression = node as ConditionalExpressionSyntax;
 
@@ -196,21 +197,21 @@
 
             if (trueExp != null)
             {
-                CheckTypeConversion(semanticModel.GetTypeInfo(trueExp), reportDiagnostic, trueExp.GetLocation(), filePath);
+                CheckTypeConversion(semanticModel.GetTypeInfo(trueExp, cancellationToken), reportDiagnostic, trueExp.GetLocation(), filePath);
             }
 
             if (falseExp != null)
             {
-                CheckTypeConversion(semanticModel.GetTypeInfo(falseExp), reportDiagnostic, falseExp.GetLocation(), filePath);
+                CheckTypeConversion(semanticModel.GetTypeInfo(falseExp, cancellationToken), reportDiagnostic, falseExp.GetLocation(), filePath);
             }
         }
 
-        private static void ForEachExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
+        private static void ForEachExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var foreachExpression = node as ForEachStatementSyntax;
             if (foreachExpression.Expression != null)
             {
-                var typeInfo = semanticModel.GetTypeInfo(foreachExpression.Expression);
+                var typeInfo = semanticModel.GetTypeInfo(foreachExpression.Expression, cancellationToken);
                 if (typeInfo.Type != null)
                 {
                     var arraySymbol = typeInfo.Type as IArrayTypeSymbol;
@@ -223,7 +224,7 @@
                     var namedTypeSymbol = typeInfo.Type as INamedTypeSymbol;
                     if (namedTypeSymbol != null && namedTypeSymbol.Arity == 1 && namedTypeSymbol.TypeArguments[0].IsValueType && foreachExpression.Type != null)
                     {
-                        var leftHandType = semanticModel.GetTypeInfo(foreachExpression.Type).Type;
+                        var leftHandType = semanticModel.GetTypeInfo(foreachExpression.Type, cancellationToken).Type;
                         if (leftHandType != null && leftHandType.IsValueType)
                         {
                             reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, foreachExpression.Expression.GetLocation(), EmptyMessageArgs));
@@ -234,14 +235,14 @@
             }
         }
 
-        private static void EqualsValueClauseCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
+        private static void EqualsValueClauseCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var initializer = node as EqualsValueClauseSyntax;
             if (initializer.Value != null)
             {
-                var typeInfo = semanticModel.GetTypeInfo(initializer.Value);
+                var typeInfo = semanticModel.GetTypeInfo(initializer.Value, cancellationToken);
                 CheckTypeConversion(typeInfo, reportDiagnostic, initializer.Value.GetLocation(), filePath);
-                CheckDelegateCreation(initializer.Value, typeInfo, semanticModel, reportDiagnostic, initializer.Value.GetLocation(), filePath);
+                CheckDelegateCreation(initializer.Value, typeInfo, semanticModel, reportDiagnostic, initializer.Value.GetLocation(), filePath, cancellationToken);
             }
         }
 
@@ -254,7 +255,7 @@
             }
         }
 
-        private static void CheckDelegateCreation(SyntaxNode node, TypeInfo typeInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
+        private static void CheckDelegateCreation(SyntaxNode node, TypeInfo typeInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, Location location, string filePath, CancellationToken cancellationToken)
         {
             // special case: method groups
             if (typeInfo.ConvertedType != null && typeInfo.ConvertedType.TypeKind == TypeKind.Delegate)
@@ -271,7 +272,7 @@
                 {
                     if (node.Kind() == SyntaxKind.IdentifierName)
                     {
-                        var symbol = semanticModel.GetSymbolInfo(node).Symbol as IMethodSymbol;
+                        var symbol = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol as IMethodSymbol;
                         if (symbol != null)
                         {
                             reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
@@ -281,7 +282,7 @@
                     else if (node.Kind() == SyntaxKind.SimpleMemberAccessExpression)
                     {
                         var memberAccess = node as MemberAccessExpressionSyntax;
-                        var symbol = semanticModel.GetSymbolInfo(memberAccess.Name).Symbol as IMethodSymbol;
+                        var symbol = semanticModel.GetSymbolInfo(memberAccess.Name, cancellationToken).Symbol as IMethodSymbol;
                         if (symbol != null)
                         {
                             reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
@@ -290,7 +291,7 @@
                     }
                 }
 
-                var symbolInfo = semanticModel.GetSymbolInfo(node).Symbol;
+                var symbolInfo = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
                 if (symbolInfo != null && symbolInfo.ContainingType != null && symbolInfo.ContainingType.IsValueType)
                 {
                     reportDiagnostic(Diagnostic.Create(DelegateOnStructInstanceRule, location, EmptyMessageArgs));

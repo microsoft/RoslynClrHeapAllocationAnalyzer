@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+    using System.Threading;
     using Microsoft.CodeAnalysis;
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -37,12 +38,13 @@
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
+            var cancellationToken = context.CancellationToken;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
 
             var anonExpr = node as AnonymousMethodExpressionSyntax;
             if (anonExpr != null && anonExpr.Block != null && anonExpr.Block.ChildNodes() != null && anonExpr.Block.ChildNodes().Any())
             {
-                GenericMethodCheck(semanticModel, node, anonExpr.DelegateKeyword.GetLocation(), reportDiagnostic);
+                GenericMethodCheck(semanticModel, node, anonExpr.DelegateKeyword.GetLocation(), reportDiagnostic, cancellationToken);
                 ClosureCaptureDataFlowAnalysis(semanticModel.AnalyzeDataFlow(anonExpr.Block.ChildNodes().First(), anonExpr.Block.ChildNodes().Last()), reportDiagnostic, anonExpr.DelegateKeyword.GetLocation());
                 return;
             }
@@ -50,7 +52,7 @@
             var lambdaExpr = node as SimpleLambdaExpressionSyntax;
             if (lambdaExpr != null)
             {
-                GenericMethodCheck(semanticModel, node, lambdaExpr.ArrowToken.GetLocation(), reportDiagnostic);
+                GenericMethodCheck(semanticModel, node, lambdaExpr.ArrowToken.GetLocation(), reportDiagnostic, cancellationToken);
                 ClosureCaptureDataFlowAnalysis(semanticModel.AnalyzeDataFlow(lambdaExpr), reportDiagnostic, lambdaExpr.ArrowToken.GetLocation());
                 return;
             }
@@ -58,7 +60,7 @@
             var parenLambdaExpr = node as ParenthesizedLambdaExpressionSyntax;
             if (parenLambdaExpr != null)
             {
-                GenericMethodCheck(semanticModel, node, parenLambdaExpr.ArrowToken.GetLocation(), reportDiagnostic);
+                GenericMethodCheck(semanticModel, node, parenLambdaExpr.ArrowToken.GetLocation(), reportDiagnostic, cancellationToken);
                 ClosureCaptureDataFlowAnalysis(semanticModel.AnalyzeDataFlow(parenLambdaExpr), reportDiagnostic, parenLambdaExpr.ArrowToken.GetLocation());
                 return;
             }
@@ -88,11 +90,11 @@
             }
         }
 
-        private static void GenericMethodCheck(SemanticModel semanticModel, SyntaxNode node, Location location, Action<Diagnostic> reportDiagnostic)
+        private static void GenericMethodCheck(SemanticModel semanticModel, SyntaxNode node, Location location, Action<Diagnostic> reportDiagnostic, CancellationToken cancellationToken)
         {
-            if (semanticModel.GetSymbolInfo(node).Symbol != null)
+            if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol != null)
             {
-                var containingSymbol = semanticModel.GetSymbolInfo(node).Symbol.ContainingSymbol as IMethodSymbol;
+                var containingSymbol = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol.ContainingSymbol as IMethodSymbol;
                 if (containingSymbol != null && containingSymbol.Arity > 0)
                 {
                     reportDiagnostic(Diagnostic.Create(LambaOrAnonymousMethodInGenericMethodRule, location, EmptyMessageArgs));

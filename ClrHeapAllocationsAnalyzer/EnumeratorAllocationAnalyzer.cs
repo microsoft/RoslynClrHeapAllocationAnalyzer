@@ -33,12 +33,13 @@
             var node = context.Node;
             var semanticModel = context.SemanticModel;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
+            var cancellationToken = context.CancellationToken;
             string filePath = node.SyntaxTree.FilePath;
 
             var foreachExpression = node as ForEachStatementSyntax;
             if (foreachExpression != null)
             {
-                var typeInfo = semanticModel.GetTypeInfo(foreachExpression.Expression);
+                var typeInfo = semanticModel.GetTypeInfo(foreachExpression.Expression, cancellationToken);
                 if (typeInfo.Type == null)
                     return;
 
@@ -79,7 +80,7 @@
             var invocationExpression = node as InvocationExpressionSyntax;
             if (invocationExpression != null)
             {
-                var methodInfo = semanticModel.GetSymbolInfo(invocationExpression).Symbol as IMethodSymbol;
+                var methodInfo = semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol as IMethodSymbol;
                 if (methodInfo != null)
                 {
                     if (methodInfo.ReturnType != null && methodInfo.ReturnType.IsReferenceType)

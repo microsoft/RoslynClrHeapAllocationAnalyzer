@@ -48,6 +48,7 @@
             var node = context.Node;
             var semanticModel = context.SemanticModel;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
+            var cancellationToken = context.CancellationToken;
             string filePath = node.SyntaxTree.FilePath;
 
             // An InitializerExpressionSyntax has an ObjectCreationExpressionSyntax as it's parent, i.e
@@ -58,7 +59,7 @@
             if (initializerExpression != null && node.Parent is ObjectCreationExpressionSyntax)
             {
                 var objectCreation = node.Parent as ObjectCreationExpressionSyntax;
-                var typeInfo = semanticModel.GetTypeInfo(objectCreation);
+                var typeInfo = semanticModel.GetTypeInfo(objectCreation, cancellationToken);
                 if (typeInfo.ConvertedType?.TypeKind != TypeKind.Error &&
                     typeInfo.ConvertedType?.IsReferenceType == true &&
                     objectCreation.Parent?.IsKind(SyntaxKind.EqualsValueClause) == true &&
@@ -97,7 +98,7 @@
             var newObj = node as ObjectCreationExpressionSyntax;
             if (newObj != null)
             {
-                var typeInfo = semanticModel.GetTypeInfo(newObj);
+                var typeInfo = semanticModel.GetTypeInfo(newObj, cancellationToken);
                 if (typeInfo.ConvertedType != null && typeInfo.ConvertedType.TypeKind != TypeKind.Error && typeInfo.ConvertedType.IsReferenceType)
                 {
                     reportDiagnostic(Diagnostic.Create(NewObjectRule, newObj.NewKeyword.GetLocation(), EmptyMessageArgs));
