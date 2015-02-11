@@ -68,7 +68,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
 
             // Run the code tree through the analyzer and record the allocations it reports
             var compilationWithAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create(analyzer));
-           var allocations = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult().Distinct().ToList();
+           var allocations = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult().Distinct(DiagnosticEqualityComparer.Instance).ToList();
 
             return new Info
             {

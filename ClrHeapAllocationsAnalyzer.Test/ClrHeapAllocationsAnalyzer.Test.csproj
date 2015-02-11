@@ -93,6 +93,7 @@
     <Compile Include="AssertEx.cs" />
     <Compile Include="CallSiteImplicitAllocationAnalyzerTests.cs" />
     <Compile Include="ConcatenationAllocationAnalyzerTests.cs" />
+    <Compile Include="DiagnosticEqualityComparer.cs" />
     <Compile Include="DisplayClassAllocationAnalyzerTests.cs" />
     <Compile Include="EnumeratorAllocationAnalyzerTests.cs" />
     <Compile Include="ExplicitAllocationAnalyzerTests.cs" />
