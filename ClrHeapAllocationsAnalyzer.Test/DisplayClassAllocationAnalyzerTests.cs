@@ -34,7 +34,7 @@ class Test
 }";
 
             var analyser = new DisplayClassAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.ParenthesizedLambdaExpression, SyntaxKind.SimpleLambdaExpression, SyntaxKind.AnonymousMethodExpression));
 
             Assert.AreEqual(3, info.Allocations.Count);
             // Diagnostic: (14,16): warning HeapAnalyzerLambdaInGenericMethodRule: Considering moving this out of the generic method

@@ -1,6 +1,8 @@
 ﻿using ClrHeapAllocationAnalyzer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
+using System.Collections.Immutable;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace ClrHeapAllocationsAnalyzer.Test
 {
@@ -18,7 +20,7 @@ var withoutBoxing = 5.ToString() + "":"" + 8.ToString();
 ";
 
             var analyser = new ConcatenationAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
 
             Assert.AreEqual(1, info.Allocations.Count(d => d.Id == "HeapAnalyzerBoxingRule"));
             Assert.AreEqual(4, info.Allocations.Count(d => d.Id == "HeapAnalyzerStringConcatRule"));

@@ -1,4 +1,6 @@
-﻿using ClrHeapAllocationAnalyzer;
+﻿using System.Collections.Immutable;
+using ClrHeapAllocationAnalyzer;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ClrHeapAllocationsAnalyzer.Test
@@ -16,7 +18,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
                     @"struct S { }
                     object box = new S();";
             var analyser = new ExplicitAllocationAnalyzer();
-            var info = ProcessCode(analyser, @script, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.ObjectCreationExpression, SyntaxKind.AnonymousObjectCreationExpression, SyntaxKind.ArrayInitializerExpression, SyntaxKind.CollectionInitializerExpression, SyntaxKind.ComplexElementInitializerExpression, SyntaxKind.ObjectInitializerExpression, SyntaxKind.ArrayCreationExpression, SyntaxKind.ImplicitArrayCreationExpression, SyntaxKind.LetClause));
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (2,34): info HeapAnalyzerExplicitNewObjectRule: Explicit new reference type allocation
             AssertEx.ContainsDiagnostic(info.Allocations, ExplicitAllocationAnalyzer.NewObjectRule.Id, line: 2, character: 34);
@@ -29,7 +31,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
                     @"struct S { }
                     System.ValueType box = new S();";
             var analyser = new ExplicitAllocationAnalyzer();
-            var info = ProcessCode(analyser, @script, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.ObjectCreationExpression, SyntaxKind.AnonymousObjectCreationExpression, SyntaxKind.ArrayInitializerExpression, SyntaxKind.CollectionInitializerExpression, SyntaxKind.ComplexElementInitializerExpression, SyntaxKind.ObjectInitializerExpression, SyntaxKind.ArrayCreationExpression, SyntaxKind.ImplicitArrayCreationExpression, SyntaxKind.LetClause));
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (2,44): info HeapAnalyzerExplicitNewObjectRule: Explicit new reference type allocation
             AssertEx.ContainsDiagnostic(info.Allocations, ExplicitAllocationAnalyzer.NewObjectRule.Id, line: 2, character: 44);
@@ -42,7 +44,17 @@ namespace ClrHeapAllocationsAnalyzer.Test
                 @"enum E { A }
                 System.Enum box = E.A;";
             var analyser = new TypeConversionAllocationAnalyzer();
-            var info = ProcessCode(analyser, @script, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, @script, ImmutableArray.Create(
+                SyntaxKind.SimpleAssignmentExpression,
+                SyntaxKind.ReturnStatement,
+                SyntaxKind.YieldReturnStatement,
+                SyntaxKind.CastExpression,
+                SyntaxKind.AsExpression,
+                SyntaxKind.CoalesceExpression,
+                SyntaxKind.ConditionalExpression,
+                SyntaxKind.ForEachStatement,
+                SyntaxKind.EqualsValueClause,
+                SyntaxKind.Argument));
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (2,35): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
             AssertEx.ContainsDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 2, character: 35);
@@ -56,7 +68,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
                 struct S : I { }
                 I box = new S();";
             var analyser = new ExplicitAllocationAnalyzer();
-            var info = ProcessCode(analyser, @script, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.ObjectCreationExpression, SyntaxKind.AnonymousObjectCreationExpression, SyntaxKind.ArrayInitializerExpression, SyntaxKind.CollectionInitializerExpression, SyntaxKind.ComplexElementInitializerExpression, SyntaxKind.ObjectInitializerExpression, SyntaxKind.ArrayCreationExpression, SyntaxKind.ImplicitArrayCreationExpression, SyntaxKind.LetClause));
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (3,25): info HeapAnalyzerExplicitNewObjectRule: Explicit new reference type allocation
             AssertEx.ContainsDiagnostic(info.Allocations, ExplicitAllocationAnalyzer.NewObjectRule.Id, line: 3, character: 25);
@@ -69,7 +81,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
                 @"char c = 'c'; //F();
                 string s1 = ""char value will box"" + c;";
             var analyser = new ConcatenationAllocationAnalyzer();
-            var info = ProcessCode(analyser, @script, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
             Assert.AreEqual(2, info.Allocations.Count);
             //Diagnostic: (2,53): warning HeapAnalyzerBoxingRule: Value type (char) is being boxed to a reference type for a string concatenation.
             AssertEx.ContainsDiagnostic(info.Allocations, ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule.Id, line: 2, character: 53);
@@ -85,7 +97,17 @@ namespace ClrHeapAllocationsAnalyzer.Test
                 struct S { public void M() {} }
                 Action box = new S().M;";
             var analyser = new TypeConversionAllocationAnalyzer();
-            var info = ProcessCode(analyser, @script, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, @script, ImmutableArray.Create(
+                SyntaxKind.SimpleAssignmentExpression,
+                SyntaxKind.ReturnStatement,
+                SyntaxKind.YieldReturnStatement,
+                SyntaxKind.CastExpression,
+                SyntaxKind.AsExpression,
+                SyntaxKind.CoalesceExpression,
+                SyntaxKind.ConditionalExpression,
+                SyntaxKind.ForEachStatement,
+                SyntaxKind.EqualsValueClause,
+                SyntaxKind.Argument));
             Assert.AreEqual(2, info.Allocations.Count);
             // Diagnostic: (3,30): warning HeapAnalyzerMethodGroupAllocationRule: This will allocate a delegate instance
             AssertEx.ContainsDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.MethodGroupAllocationRule.Id, line: 3, character: 30);
@@ -100,7 +122,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
                 @"enum E { A }
                 E.A.GetHashCode();";
             var analyser = new CallSiteImplicitAllocationAnalyzer();
-            var info = ProcessCode(analyser, @script, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.InvocationExpression));
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (2,17): warning HeapAnalyzerValueTypeNonOverridenCallRule: Non-overriden virtual method call on a value type adds a boxing or constrained instruction
             AssertEx.ContainsDiagnostic(info.Allocations, CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule.Id, line: 2, character: 17);

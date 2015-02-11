@@ -74,7 +74,7 @@ foreach (var f in fx2) // NO Allocations
 }";
 
             var analyser = new EnumeratorAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.ForEachStatement, SyntaxKind.InvocationExpression));
 
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (11,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in an heap allocation

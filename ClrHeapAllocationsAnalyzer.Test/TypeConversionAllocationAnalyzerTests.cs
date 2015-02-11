@@ -281,7 +281,17 @@ for (int i = 0;;) // NO Allocation
 }";
 
             var analyser = new TypeConversionAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(
+                SyntaxKind.SimpleAssignmentExpression,
+                SyntaxKind.ReturnStatement,
+                SyntaxKind.YieldReturnStatement,
+                SyntaxKind.CastExpression,
+                SyntaxKind.AsExpression,
+                SyntaxKind.CoalesceExpression,
+                SyntaxKind.ConditionalExpression,
+                SyntaxKind.ForEachStatement,
+                SyntaxKind.EqualsValueClause,
+                SyntaxKind.Argument));
 
             Assert.AreEqual(1, info.Allocations.Count);
 
