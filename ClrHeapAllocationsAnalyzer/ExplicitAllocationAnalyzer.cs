@@ -55,7 +55,7 @@
             //               |             |--------------| <- InitializerExpressionSyntax or SyntaxKind.ObjectInitializerExpression
             //               |----------------------------| <- ObjectCreationExpressionSyntax or SyntaxKind.ObjectCreationExpression
             var initializerExpression = node as InitializerExpressionSyntax;
-            if (initializerExpression != null && node.Parent is ObjectCreationExpressionSyntax)
+            if (initializerExpression?.Parent is ObjectCreationExpressionSyntax)
             {
                 var objectCreation = node.Parent as ObjectCreationExpressionSyntax;
                 var typeInfo = semanticModel.GetTypeInfo(objectCreation);

@@ -96,9 +96,6 @@ public struct MyStruct
             AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.MethodGroupAllocationRule.Id, line: 27, character: 29);
             // Diagnostic: (27,29): warning HeapAnalyzerDelegateOnStructRule: Struct instance method being used for delegate creation, this will result in a boxing instruction
             AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, line: 27, character: 29);
-            
-            // TODO this is a false positive
-            // Diagnostic: (28,54): warning HeapAnalyzerDelegateOnStructRule: Struct instance method being used for delegate creation, this will result in a boxing instruction
         }
 
         [TestMethod]
@@ -236,40 +233,6 @@ public struct MyStruct
             AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.MethodGroupAllocationRule.Id, line: 23, character: 31);
             // Diagnostic: (23,31): warning HeapAnalyzerDelegateOnStructRule: Struct instance method being used for delegate creation, this will result in a boxing instruction
             AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, line: 23, character: 31);
-            // TODO this is a false positive
-            // Diagnostic: (24,56): warning HeapAnalyzerDelegateOnStructRule: Struct instance method being used for delegate creation, this will result in a boxing instruction
-        }
-
-        [TestMethod]
-        public void TypeConversionAllocation_ForEachStatementSyntax()
-        {
-            var sampleProgram =
-@"using System;
-using System.Collections.Generic;
-using System.Linq;
-
-foreach (var a in new[] { 1, 2, 3 }) // Allocation (via Array code-path)
-{
-}
-
-foreach (var a in (new[] { 1, 2, 3 }).ToList()) // Allocation (via List<T> code-path)
-{
-}
-
-foreach (var a in new[] { ""1"", ""2"", ""3"" }) // No Allocation
-{
-}";
-
-            var analyser = new TypeConversionAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.ForEachStatement));
-
-            Assert.AreEqual(2, info.Allocations.Count);
-
-            // Diagnostic: (5,19): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
-            AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 5, character: 19);
-
-            // Diagnostic: (9,19): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
-            AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 9, character: 19);
         }
 
         [TestMethod]

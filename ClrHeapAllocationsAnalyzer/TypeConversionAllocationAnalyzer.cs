@@ -84,13 +84,6 @@
                 return;
             }
 
-            // foreach (var a in new[] ...)
-            if (node is ForEachStatementSyntax)
-            {
-                ForEachExpressionCheck(node, semanticModel, reportDiagnostic, filePath);
-                return;
-            }
-
             // for (object i = 0;;)
             if (node is EqualsValueClauseSyntax)
             {
@@ -149,12 +142,12 @@
             var binaryExpression = node as BinaryExpressionSyntax;
 
             // as expression
-            if (binaryExpression.Kind() == SyntaxKind.AsExpression && binaryExpression.Left != null && binaryExpression.Right != null)
+            if (binaryExpression.IsKind(SyntaxKind.AsExpression) && binaryExpression.Left != null && binaryExpression.Right != null)
             {
                 var leftT = semanticModel.GetTypeInfo(binaryExpression.Left);
                 var rightT = semanticModel.GetTypeInfo(binaryExpression.Right);
 
-                if (leftT.Type != null && leftT.Type.IsValueType && rightT.Type != null && rightT.Type.IsReferenceType)
+                if (leftT.Type?.IsValueType == true && rightT.Type?.IsReferenceType == true)
                 {
                     reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, binaryExpression.Left.GetLocation(), EmptyMessageArgs));
                     HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
@@ -180,7 +173,7 @@
                 var castTypeInfo = semanticModel.GetTypeInfo(castExpression);
                 var expressionTypeInfo = semanticModel.GetTypeInfo(castExpression.Expression);
 
-                if (castTypeInfo.Type != null && expressionTypeInfo.Type != null && castTypeInfo.Type.IsReferenceType && expressionTypeInfo.Type.IsValueType)
+                if (castTypeInfo.Type?.IsReferenceType == true && expressionTypeInfo.Type?.IsValueType == true)
                 {
                     reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, castExpression.Expression.GetLocation(), EmptyMessageArgs));
                 }
@@ -205,35 +198,6 @@
             }
         }
 
-        private static void ForEachExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
-        {
-            var foreachExpression = node as ForEachStatementSyntax;
-            if (foreachExpression.Expression != null)
-            {
-                var typeInfo = semanticModel.GetTypeInfo(foreachExpression.Expression);
-                if (typeInfo.Type != null)
-                {
-                    var arraySymbol = typeInfo.Type as IArrayTypeSymbol;
-                    if (arraySymbol != null && arraySymbol.ElementType.IsValueType)
-                    {
-                        reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, foreachExpression.Expression.GetLocation(), EmptyMessageArgs));
-                        return;
-                    }
-
-                    var namedTypeSymbol = typeInfo.Type as INamedTypeSymbol;
-                    if (namedTypeSymbol != null && namedTypeSymbol.Arity == 1 && namedTypeSymbol.TypeArguments[0].IsValueType && foreachExpression.Type != null)
-                    {
-                        var leftHandType = semanticModel.GetTypeInfo(foreachExpression.Type).Type;
-                        if (leftHandType != null && leftHandType.IsValueType)
-                        {
-                            reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, foreachExpression.Expression.GetLocation(), EmptyMessageArgs));
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-
         private static void EqualsValueClauseCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
         {
             var initializer = node as EqualsValueClauseSyntax;
@@ -247,7 +211,7 @@
 
         private static void CheckTypeConversion(TypeInfo typeInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
         {
-            if (typeInfo.Type != null && typeInfo.ConvertedType != null && typeInfo.Type.IsValueType && !typeInfo.ConvertedType.IsValueType)
+            if (typeInfo.Type?.IsValueType == true && !(typeInfo.ConvertedType?.IsValueType == true))
             {
                 reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, location, EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
@@ -257,19 +221,19 @@
         private static void CheckDelegateCreation(SyntaxNode node, TypeInfo typeInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
         {
             // special case: method groups
-            if (typeInfo.ConvertedType != null && typeInfo.ConvertedType.TypeKind == TypeKind.Delegate)
+            if (typeInfo.ConvertedType?.TypeKind == TypeKind.Delegate)
             {
                 // new Action<Foo>(MethodGroup); should skip this one
-                var insideObjectCreation = (node.Parent != null && node.Parent.Parent != null && node.Parent.Parent.Parent != null &&
-                                            (node.Parent.Parent.Parent.Kind() == SyntaxKind.ObjectCreationExpression));
+                var insideObjectCreation = node?.Parent?.Parent?.Parent?.Kind() == SyntaxKind.ObjectCreationExpression;
                 if (node is ParenthesizedLambdaExpressionSyntax || node is SimpleLambdaExpressionSyntax ||
-                    node is AnonymousMethodExpressionSyntax || node is ObjectCreationExpressionSyntax || insideObjectCreation)
+                    node is AnonymousMethodExpressionSyntax || node is ObjectCreationExpressionSyntax ||
+                    insideObjectCreation)
                 {
                     // skip this, because it's intended.
                 }
                 else
                 {
-                    if (node.Kind() == SyntaxKind.IdentifierName)
+                    if (node.IsKind(SyntaxKind.IdentifierName))
                     {
                         var symbol = semanticModel.GetSymbolInfo(node).Symbol as IMethodSymbol;
                         if (symbol != null)
@@ -278,7 +242,7 @@
                             HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                         }
                     }
-                    else if (node.Kind() == SyntaxKind.SimpleMemberAccessExpression)
+                    else if (node.IsKind(SyntaxKind.SimpleMemberAccessExpression))
                     {
                         var memberAccess = node as MemberAccessExpressionSyntax;
                         var symbol = semanticModel.GetSymbolInfo(memberAccess.Name).Symbol as IMethodSymbol;
@@ -291,7 +255,7 @@
                 }
 
                 var symbolInfo = semanticModel.GetSymbolInfo(node).Symbol;
-                if (symbolInfo != null && symbolInfo.ContainingType != null && symbolInfo.ContainingType.IsValueType)
+                if (symbolInfo?.ContainingType?.IsValueType == true && !insideObjectCreation)
                 {
                     reportDiagnostic(Diagnostic.Create(DelegateOnStructInstanceRule, location, EmptyMessageArgs));
                 }
