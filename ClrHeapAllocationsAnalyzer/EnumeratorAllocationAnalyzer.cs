@@ -15,13 +15,7 @@
 
         internal static object[] EmptyMessageArgs = { };
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
-        {
-            get
-            {
-                return ImmutableArray.Create(ReferenceTypeEnumeratorRule);
-            }
-        }
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ReferenceTypeEnumeratorRule);
 
         public override void Initialize(AnalysisContext context)
         {

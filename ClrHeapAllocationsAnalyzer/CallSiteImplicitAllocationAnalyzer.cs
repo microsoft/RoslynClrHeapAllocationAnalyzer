@@ -17,13 +17,7 @@ namespace ClrHeapAllocationAnalyzer
 
         internal static object[] EmptyMessageArgs = { };
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
-        {
-            get
-            {
-                return ImmutableArray.Create(ParamsParameterRule, ValueTypeNonOverridenCallRule);
-            }
-        }
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ParamsParameterRule, ValueTypeNonOverridenCallRule);
 
         public override void Initialize(AnalysisContext context)
         {
