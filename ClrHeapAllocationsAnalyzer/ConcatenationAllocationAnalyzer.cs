@@ -29,6 +29,7 @@
             var node = context.Node;
             var semanticModel = context.SemanticModel;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
+            var cancellationToken = context.CancellationToken;
             string filePath = node.SyntaxTree.FilePath;
             var binaryExpressions = node.DescendantNodesAndSelf().OfType<BinaryExpressionSyntax>().Reverse(); // need inner most expressions
 
@@ -36,10 +37,10 @@
             {
                 if (binaryExpression.Left != null && binaryExpression.Right != null)
                 {
-                    var left = semanticModel.GetTypeInfo(binaryExpression.Left);
+                    var left = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
                     CheckForTypeConversion(binaryExpression.Left, left, reportDiagnostic, filePath);
 
-                    var right = semanticModel.GetTypeInfo(binaryExpression.Right);
+                    var right = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
                     CheckForTypeConversion(binaryExpression.Right, right, reportDiagnostic, filePath);
 
                     // regular string allocation

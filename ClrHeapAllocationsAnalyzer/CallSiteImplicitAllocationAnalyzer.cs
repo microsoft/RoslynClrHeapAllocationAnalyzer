@@ -3,6 +3,7 @@ namespace ClrHeapAllocationAnalyzer
     using System;
     using System.Collections.Immutable;
     using System.Runtime.CompilerServices;
+    using System.Threading;
     using Microsoft.CodeAnalysis;
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -29,10 +30,11 @@ namespace ClrHeapAllocationAnalyzer
             var node = context.Node;
             var semanticModel = context.SemanticModel;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
+            var cancellationToken = context.CancellationToken;
             string filePath = node.SyntaxTree.FilePath;
 
             var invocationExpression = node as InvocationExpressionSyntax;
-            var methodInfo = semanticModel.GetSymbolInfo(invocationExpression).Symbol as IMethodSymbol;
+            var methodInfo = semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol as IMethodSymbol;
 
             if (methodInfo != null)
             {
@@ -42,14 +44,14 @@ namespace ClrHeapAllocationAnalyzer
                     var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
                     if (lastParam.IsParams)
                     {
-                        CheckParam(invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath);
+                        CheckParam(invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
                     }
                 }
             }
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void CheckParam(InvocationExpressionSyntax invocationExpression, IMethodSymbol methodInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath)
+        private static void CheckParam(InvocationExpressionSyntax invocationExpression, IMethodSymbol methodInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var arguments = invocationExpression.ArgumentList.Arguments;
             if (arguments.Count != methodInfo.Parameters.Length)
@@ -60,7 +62,7 @@ namespace ClrHeapAllocationAnalyzer
             else
             {
                 var lastIndex = arguments.Count - 1;
-                var lastArgumentTypeInfo = semanticModel.GetTypeInfo(arguments[lastIndex].Expression);
+                var lastArgumentTypeInfo = semanticModel.GetTypeInfo(arguments[lastIndex].Expression, cancellationToken);
                 if (lastArgumentTypeInfo.Type != null && !lastArgumentTypeInfo.Type.Equals(methodInfo.Parameters[lastIndex].Type))
                 {
                     reportDiagnostic(Diagnostic.Create(ParamsParameterRule, invocationExpression.GetLocation(), EmptyMessageArgs));
