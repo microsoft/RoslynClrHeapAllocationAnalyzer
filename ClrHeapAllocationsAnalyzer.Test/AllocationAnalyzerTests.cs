@@ -14,10 +14,10 @@ namespace ClrHeapAllocationsAnalyzer.Test
     {
         protected static readonly List<MetadataReference> references = new List<MetadataReference>
             {
-                new MetadataFileReference(typeof(int).Assembly.Location),
-                new MetadataFileReference(typeof(Console).Assembly.Location),
-                new MetadataFileReference(typeof(Enumerable).Assembly.Location),
-                new MetadataFileReference(typeof(IList<>).Assembly.Location)
+                MetadataReference.CreateFromAssembly(typeof(int).Assembly),
+                MetadataReference.CreateFromAssembly(typeof(Console).Assembly),
+                MetadataReference.CreateFromAssembly(typeof(Enumerable).Assembly),
+                MetadataReference.CreateFromAssembly(typeof(IList<>).Assembly)
             };
 
         protected IList<SyntaxNode> GetExpectedDescendants(IEnumerable<SyntaxNode> nodes, ImmutableArray<SyntaxKind> expected)
@@ -25,7 +25,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
             var descendants = new List<SyntaxNode>();
             foreach (var node in nodes)
             {
-                if (expected.Any(e => e == node.CSharpKind()))
+                if (expected.Any(e => e == node.Kind()))
                 {
                     descendants.Add(node);
                     continue;
@@ -33,7 +33,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
 
                 foreach (var child in node.ChildNodes())
                 {
-                    if (expected.Any(e => e == child.CSharpKind()))
+                    if (expected.Any(e => e == child.Kind()))
                     {
                         descendants.Add(child);
                         continue;
@@ -46,7 +46,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
             return descendants;
         }
 
-        protected Info ProcessCode(ISyntaxNodeAnalyzer<SyntaxKind> analyser, string sampleProgram, 
+        protected Info ProcessCode(DiagnosticAnalyzer analyzer, string sampleProgram,
                                    ImmutableArray<SyntaxKind> expected, bool allowBuildErrors = false)
         {
             var options = new CSharpParseOptions(kind: SourceCodeKind.Script); //, languageVersion: LanguageVersion.CSharp5);
@@ -66,31 +66,20 @@ namespace ClrHeapAllocationsAnalyzer.Test
             var semanticModel = compilation.GetSemanticModel(tree);
             var matches = GetExpectedDescendants(tree.GetRoot().ChildNodes(), expected);
 
-            // Run the code tree thru the analyser and record the allocations it reports
-            var allocations = new List<Diagnostic>();
-            foreach (var expression in matches)
-            {
-                var code = expression.GetLeadingTrivia().ToFullString() + expression.ToString();
-                Console.WriteLine("\n### CODE ### " + (code.StartsWith("\r\n") ? code : "\n" + code));
-                analyser.AnalyzeNode(expression, semanticModel, d =>
-                    {
-                        allocations.Add(d);
-                        Console.WriteLine("*** Diagnostic: " + d.ToString() + " ***");
-                    }, 
-                    null, 
-                    CancellationToken.None);
-            }
+            // Run the code tree through the analyzer and record the allocations it reports
+            var compilationWithAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create(analyzer));
+           var allocations = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult().Distinct(DiagnosticEqualityComparer.Instance).ToList();
 
             return new Info
-                {
-                    Options = options,
-                    Tree = tree,
-                    Compilation = compilation,
-                    Diagnostics = diagnostics,
-                    SemanticModel = semanticModel,
-                    Matches = matches,
-                    Allocations = allocations,
-                };
+            {
+                Options = options,
+                Tree = tree,
+                Compilation = compilation,
+                Diagnostics = diagnostics,
+                SemanticModel = semanticModel,
+                Matches = matches,
+                Allocations = allocations,
+            };
         }
 
         protected class Info

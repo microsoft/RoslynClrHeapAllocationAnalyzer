@@ -2,43 +2,38 @@
 {
     using System;
     using System.Collections.Immutable;
-    using System.Threading;
+    using System.Linq;
     using Microsoft.CodeAnalysis;
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
     using Microsoft.CodeAnalysis.Diagnostics;
 
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class EnumeratorAllocationAnalyzer : ISyntaxNodeAnalyzer<SyntaxKind>
+    public sealed class EnumeratorAllocationAnalyzer : DiagnosticAnalyzer
     {
-        internal static DiagnosticDescriptor ReferenceTypeEnumeratorRule = new DiagnosticDescriptor("HeapAnalyzerEnumeratorAllocationRule", "Possible allocation of reference type enumerator", "Non-ValueType enumerator may result in an heap allocation", "Performance", DiagnosticSeverity.Warning, true);
+        public static DiagnosticDescriptor ReferenceTypeEnumeratorRule = new DiagnosticDescriptor("HeapAnalyzerEnumeratorAllocationRule", "Possible allocation of reference type enumerator", "Non-ValueType enumerator may result in an heap allocation", "Performance", DiagnosticSeverity.Warning, true);
 
         internal static object[] EmptyMessageArgs = { };
 
-        public ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ReferenceTypeEnumeratorRule);
+
+        public override void Initialize(AnalysisContext context)
         {
-            get
-            {
-                return ImmutableArray.Create(ReferenceTypeEnumeratorRule);
-            }
+            context.RegisterSyntaxNodeAction(AnalyzeNode, SyntaxKind.ForEachStatement, SyntaxKind.InvocationExpression);
         }
 
-        public ImmutableArray<SyntaxKind> SyntaxKindsOfInterest
+        private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
         {
-            get
-            {
-                return ImmutableArray.Create(SyntaxKind.ForEachStatement, SyntaxKind.InvocationExpression);
-            }
-        }
-
-        public void AnalyzeNode(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> addDiagnostic, AnalyzerOptions options, CancellationToken cancellationToken)
-        {
+            var node = context.Node;
+            var semanticModel = context.SemanticModel;
+            Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
+            var cancellationToken = context.CancellationToken;
             string filePath = node.SyntaxTree.FilePath;
 
             var foreachExpression = node as ForEachStatementSyntax;
             if (foreachExpression != null)
             {
-                var typeInfo = semanticModel.GetTypeInfo(foreachExpression.Expression);
+                var typeInfo = semanticModel.GetTypeInfo(foreachExpression.Expression, cancellationToken);
                 if (typeInfo.Type == null)
                     return;
 
@@ -52,7 +47,7 @@
                 if ((enumerator == null || enumerator.Length == 0) && typeInfo.Type.Interfaces != null)
                 {
                     // 2nd fallback, now we try and find the IEnumerable Interface explicitly
-                    var iEnumerable = typeInfo.Type.Interfaces.WhereAsArray(i => i.Name == "IEnumerable");
+                    var iEnumerable = typeInfo.Type.Interfaces.Where(i => i.Name == "IEnumerable").ToImmutableArray();
                     if (iEnumerable != null && iEnumerable.Length > 0)
                     {
                         enumerator = iEnumerable[0].GetMembers("GetEnumerator");
@@ -67,7 +62,7 @@
                         if (methodSymbol.ReturnType.IsReferenceType &&
                             methodSymbol.ReturnType.SpecialType != SpecialType.System_Collections_IEnumerator)
                         {
-                            addDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, foreachExpression.InKeyword.GetLocation(), EmptyMessageArgs));
+                            reportDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, foreachExpression.InKeyword.GetLocation(), EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
                         }
                     }
@@ -79,7 +74,7 @@
             var invocationExpression = node as InvocationExpressionSyntax;
             if (invocationExpression != null)
             {
-                var methodInfo = semanticModel.GetSymbolInfo(invocationExpression).Symbol as IMethodSymbol;
+                var methodInfo = semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol as IMethodSymbol;
                 if (methodInfo != null)
                 {
                     if (methodInfo.ReturnType != null && methodInfo.ReturnType.IsReferenceType)
@@ -88,10 +83,10 @@
                         {
                             foreach (var @interface in methodInfo.ReturnType.AllInterfaces)
                             {
-                                if (@interface.SpecialType == SpecialType.System_Collections_Generic_IEnumerator_T || 
+                                if (@interface.SpecialType == SpecialType.System_Collections_Generic_IEnumerator_T ||
                                     @interface.SpecialType == SpecialType.System_Collections_IEnumerator)
                                 {
-                                    addDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, invocationExpression.GetLocation(), EmptyMessageArgs));
+                                    reportDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, invocationExpression.GetLocation(), EmptyMessageArgs));
                                     HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
                                 }
                             }

@@ -1,4 +1,6 @@
-﻿using ClrHeapAllocationAnalyzer;
+﻿using System.Collections.Immutable;
+using ClrHeapAllocationAnalyzer;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ClrHeapAllocationsAnalyzer.Test
@@ -29,7 +31,7 @@ public void ParamsWithObjects(params object[] args)
 }";
 
             var analyser = new CallSiteImplicitAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
 
             Assert.AreEqual(4, info.Allocations.Count);
             // Diagnostic: (3,1): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter
@@ -66,7 +68,7 @@ struct OverrideToHashCode
 }";
 
             var analyser = new CallSiteImplicitAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, analyser.SyntaxKindsOfInterest);
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
 
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (3,14): warning HeapAnalyzerValueTypeNonOverridenCallRule: Non-overriden virtual method call on a value type adds a boxing or constrained instruction
