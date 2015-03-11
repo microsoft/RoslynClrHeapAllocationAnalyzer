@@ -59,8 +59,7 @@
                     var methodSymbol = enumerator[0] as IMethodSymbol; // probably should do something better here, hack.
                     if (methodSymbol != null)
                     {
-                        if (methodSymbol.ReturnType.IsReferenceType &&
-                            methodSymbol.ReturnType.SpecialType != SpecialType.System_Collections_IEnumerator)
+                        if (methodSymbol.ReturnType.IsReferenceType && methodSymbol.ReturnType.SpecialType != SpecialType.System_Collections_IEnumerator)
                         {
                             reportDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, foreachExpression.InKeyword.GetLocation(), EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
@@ -75,24 +74,20 @@
             if (invocationExpression != null)
             {
                 var methodInfo = semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol as IMethodSymbol;
-                if (methodInfo != null)
-                {
-                    if (methodInfo.ReturnType != null && methodInfo.ReturnType.IsReferenceType)
-                    {
-                        if (methodInfo.ReturnType.AllInterfaces != null)
-                        {
-                            foreach (var @interface in methodInfo.ReturnType.AllInterfaces)
-                            {
-                                if (@interface.SpecialType == SpecialType.System_Collections_Generic_IEnumerator_T ||
-                                    @interface.SpecialType == SpecialType.System_Collections_IEnumerator)
-                                {
-                                    reportDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, invocationExpression.GetLocation(), EmptyMessageArgs));
-                                    HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
-                                }
-                            }
-                        }
-                    }
-                }
+	            if (methodInfo?.ReturnType != null && methodInfo.ReturnType.IsReferenceType)
+	            {
+		            if (methodInfo.ReturnType.AllInterfaces != null)
+		            {
+			            foreach (var @interface in methodInfo.ReturnType.AllInterfaces)
+			            {
+				            if (@interface.SpecialType == SpecialType.System_Collections_Generic_IEnumerator_T || @interface.SpecialType == SpecialType.System_Collections_IEnumerator)
+				            {
+					            reportDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, invocationExpression.GetLocation(), EmptyMessageArgs));
+					            HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
+				            }
+			            }
+		            }
+	            }
             }
         }
     }

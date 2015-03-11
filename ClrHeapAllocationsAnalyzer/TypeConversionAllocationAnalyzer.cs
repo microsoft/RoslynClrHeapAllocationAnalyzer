@@ -206,7 +206,7 @@
 
         private static void CheckTypeConversion(TypeInfo typeInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
         {
-            if (typeInfo.Type?.IsValueType == true && !(typeInfo.ConvertedType?.IsValueType == true))
+            if (typeInfo.Type?.IsValueType == true && typeInfo.ConvertedType?.IsValueType != true)
             {
                 reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, location, EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);

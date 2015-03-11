@@ -2,7 +2,7 @@
 <package>
     <metadata>
         <id>ClrHeapAllocationAnalyzer</id>
-        <version>1.0.0.5</version>
+        <version>1.0.0.6</version>
         <title>Clr C# Heap Allocation Analyzer</title>
         <authors>mjsabby</authors>
         <owners>mjsabby</owners>
@@ -12,10 +12,10 @@
         <description>
             Roslyn based C# heap allocation diagnostic analyzer that can detect explicit and many implicit allocations like boxing, display classes a.k.a closures, implicit delegate creations, etc
 
-            The code-assist version that integrates with the Visual Studio 14 IDE is here, https://visualstudiogallery.msdn.microsoft.com/23ef1a4d-bc9d-49f1-a84f-ca358daaf587
+            The code-assist version that integrates with the Visual Studio 2015 IDE is here, https://visualstudiogallery.msdn.microsoft.com/23ef1a4d-bc9d-49f1-a84f-ca358daaf587
 
             NOTE: This is the build analyzer.
-            NOTE: You require ' ' ' ' Visual Studio 2014 CTP 6 ' ' ' ' for this to work.
+            NOTE: You require ' ' ' ' Visual Studio 2015 CTP 6 ' ' ' ' for this to work.
         </description>
         <releaseNotes>A few fixes that were left out due to merge issue. False positive on method groups, and new array was missing.</releaseNotes>
         <copyright>Copyright</copyright>

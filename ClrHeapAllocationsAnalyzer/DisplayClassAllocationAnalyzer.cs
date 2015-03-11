@@ -36,7 +36,7 @@
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
 
             var anonExpr = node as AnonymousMethodExpressionSyntax;
-            if (anonExpr != null && anonExpr.Block != null && anonExpr.Block.ChildNodes() != null && anonExpr.Block.ChildNodes().Any())
+            if (anonExpr?.Block?.ChildNodes() != null && anonExpr.Block.ChildNodes().Any())
             {
                 GenericMethodCheck(semanticModel, node, anonExpr.DelegateKeyword.GetLocation(), reportDiagnostic, cancellationToken);
                 ClosureCaptureDataFlowAnalysis(semanticModel.AnalyzeDataFlow(anonExpr.Block.ChildNodes().First(), anonExpr.Block.ChildNodes().Last()), reportDiagnostic, anonExpr.DelegateKeyword.GetLocation());

@@ -44,8 +44,7 @@
                     CheckForTypeConversion(binaryExpression.Right, right, reportDiagnostic, filePath);
 
                     // regular string allocation
-                    if (left.Type != null && left.Type.SpecialType == SpecialType.System_String ||
-                        right.Type != null && right.Type.SpecialType == SpecialType.System_String)
+                    if (left.Type != null && left.Type.SpecialType == SpecialType.System_String || right.Type != null && right.Type.SpecialType == SpecialType.System_String)
                     {
                         reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
                         HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
