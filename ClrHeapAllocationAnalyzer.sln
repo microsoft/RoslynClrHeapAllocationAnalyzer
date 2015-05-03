@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.22609.0
+VisualStudioVersion = 14.0.22823.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClrHeapAllocationAnalyzer", "ClrHeapAllocationsAnalyzer\ClrHeapAllocationAnalyzer.csproj", "{EC7D2390-8B99-4D52-8733-45AF8616DC35}"
 EndProject
@@ -10,7 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{18E732
 		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClrHeapAllocationAnalyzer.Test", "ClrHeapAllocationsAnalyzer.Test\ClrHeapAllocationsAnalyzer.Test.csproj", "{9F29A769-B1F0-41E0-8944-B81EDF8C96E8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClrHeapAllocationAnalyzer.Test", "ClrHeapAllocationsAnalyzer.Test\ClrHeapAllocationAnalyzer.Test.csproj", "{9F29A769-B1F0-41E0-8944-B81EDF8C96E8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClrHeapAllocationAnalyzer.Vsix", "ClrHeapAllocationsAnalyzer.Vsix\ClrHeapAllocationAnalyzer.Vsix.csproj", "{B1412F49-1ABA-4698-B928-451FDA8DAF85}"
 EndProject
