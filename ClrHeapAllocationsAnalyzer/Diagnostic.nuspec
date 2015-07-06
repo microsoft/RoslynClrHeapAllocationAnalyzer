@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0"?>
 <package>
-    <metadata>
+    <metadata minClientVersion="2.8">
         <id>ClrHeapAllocationAnalyzer</id>
         <version>1.0.0.6</version>
         <title>Clr C# Heap Allocation Analyzer</title>
@@ -23,6 +23,7 @@
         <frameworkAssemblies>
             <frameworkAssembly assemblyName="System" targetFramework="" />
         </frameworkAssemblies>
+        <developmentDependency>true</developmentDependency>
     </metadata>
     <files>
         <file src="*.dll" target="tools\analyzers\" exclude="**\Microsoft.CodeAnalysis.*;**\System.Collections.Immutable.*;**\System.Reflection.Metadata.*" />
