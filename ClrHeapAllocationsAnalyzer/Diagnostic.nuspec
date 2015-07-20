@@ -2,7 +2,7 @@
 <package>
     <metadata minClientVersion="2.8">
         <id>ClrHeapAllocationAnalyzer</id>
-        <version>1.0.0.6</version>
+        <version>1.0.0.7</version>
         <title>Clr C# Heap Allocation Analyzer</title>
         <authors>mjsabby</authors>
         <owners>mjsabby</owners>
@@ -15,9 +15,9 @@
             The code-assist version that integrates with the Visual Studio 2015 IDE is here, https://visualstudiogallery.msdn.microsoft.com/23ef1a4d-bc9d-49f1-a84f-ca358daaf587
 
             NOTE: This is the build analyzer.
-            NOTE: You require ' ' ' ' Visual Studio 2015 CTP 6 ' ' ' ' for this to work.
+            NOTE: You require ' ' ' ' Visual Studio 2015 ' ' ' ' for this to work.
         </description>
-        <releaseNotes>A few fixes that were left out due to merge issue. False positive on method groups, and new array was missing.</releaseNotes>
+        <releaseNotes>Visual Studio 2015 RTM Update.</releaseNotes>
         <copyright>Copyright</copyright>
         <tags>clr allocations boxing closure displayclass delegate enumerator newobj roslyn analyzer diagnostic</tags>
         <frameworkAssemblies>
@@ -26,7 +26,7 @@
         <developmentDependency>true</developmentDependency>
     </metadata>
     <files>
-        <file src="*.dll" target="tools\analyzers\" exclude="**\Microsoft.CodeAnalysis.*;**\System.Collections.Immutable.*;**\System.Reflection.Metadata.*" />
+        <file src="*.dll" target="analyzers\dotnet\cs" exclude="**\Microsoft.CodeAnalysis.*;**\System.Collections.Immutable.*;**\System.Reflection.Metadata.*;**\System.Composition.*" />
         <file src="tools\*.ps1" target="tools\" />
     </files>
 </package>

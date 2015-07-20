@@ -14,10 +14,10 @@ namespace ClrHeapAllocationsAnalyzer.Test
     {
         protected static readonly List<MetadataReference> references = new List<MetadataReference>
             {
-                MetadataReference.CreateFromAssembly(typeof(int).Assembly),
-                MetadataReference.CreateFromAssembly(typeof(Console).Assembly),
-                MetadataReference.CreateFromAssembly(typeof(Enumerable).Assembly),
-                MetadataReference.CreateFromAssembly(typeof(IList<>).Assembly)
+                MetadataReference.CreateFromFile(typeof(int).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(IList<>).Assembly.Location)
             };
 
         protected IList<SyntaxNode> GetExpectedDescendants(IEnumerable<SyntaxNode> nodes, ImmutableArray<SyntaxKind> expected)
