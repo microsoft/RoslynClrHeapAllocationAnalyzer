@@ -393,5 +393,45 @@ var f2 = (object)""5""; // NO Allocation
             // Diagnostic: (3,18): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
             AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 3, character: 18);
         }
+
+        [TestMethod]
+        public void TypeConversionAllocation_ImplicitStringCastOperator()
+        {
+            var sampleProgram = @"
+                public struct AStruct
+                {
+                    public readonly string WrappedString;
+
+                    public AStruct(string s)
+                    {
+                        WrappedString = s ?? """";
+                    }
+
+                    public static void Dump(AStruct astruct)
+                    {
+                        System.Console.WriteLine(astruct);
+                    }
+
+                    public static implicit operator string(AStruct astruct)
+                    {
+                        return astruct.WrappedString;
+                    }
+                }
+                public class Program
+                {
+                    public static void Main()
+                    {
+                        var astruct = new AStruct(System.Environment.MachineName);
+                        AStruct.Dump(astruct);
+                    }
+                }
+            ";
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyzer, sampleProgram, ImmutableArray.Create(SyntaxKind.Argument));
+            Assert.AreEqual(0, info.Allocations.Count);
+            // currently info.Allocations.Count == 1
+            // with info.Allocations[0] =
+            // (13,50): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
+        }
     }
 }
