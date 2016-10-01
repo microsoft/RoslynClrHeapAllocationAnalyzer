@@ -16,3 +16,7 @@ If you want it use it in your build: https://www.nuget.org/packages/ClrHeapAlloc
 **NOTE: Requires [Visual Studio 2015](https://www.visualstudio.com/news/vs2015-vs)**
 
 ![example](https://cloud.githubusercontent.com/assets/1930559/4606581/2a027d08-5225-11e4-8d4e-686c204a1267.png)
+
+## Microsoft Open Source Code of Conduct
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
