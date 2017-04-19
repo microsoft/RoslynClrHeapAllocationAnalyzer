@@ -34,9 +34,8 @@ namespace ClrHeapAllocationAnalyzer
             string filePath = node.SyntaxTree.FilePath;
 
             var invocationExpression = node as InvocationExpressionSyntax;
-            var methodInfo = semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol as IMethodSymbol;
 
-            if (methodInfo != null)
+            if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is IMethodSymbol methodInfo)
             {
                 CheckNonOverridenMethodOnStruct(methodInfo, reportDiagnostic, invocationExpression, filePath);
                 if (methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
