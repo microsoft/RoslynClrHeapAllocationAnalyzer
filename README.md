@@ -11,7 +11,7 @@ Roslyn based C# heap allocation diagnostic analyzer that can detect explicit and
 
 You can find also it on the Visual Studio Gallery, https://visualstudiogallery.msdn.microsoft.com/f9b47b93-8675-4ae0-9c52-5da8027c4bb8
 
-If you want it use it in your build: https://www.nuget.org/packages/ClrHeapAllocationAnalyzer/1.0.0.7
+If you want it use it in your build: https://www.nuget.org/packages/ClrHeapAllocationAnalyzer/
 
 **NOTE: Requires [Visual Studio 2015](https://www.visualstudio.com/news/vs2015-vs)**
 
