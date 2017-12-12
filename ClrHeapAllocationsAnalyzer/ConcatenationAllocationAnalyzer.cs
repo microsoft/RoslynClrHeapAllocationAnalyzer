@@ -35,20 +35,28 @@
 
             foreach (var binaryExpression in binaryExpressions)
             {
-                if (binaryExpression.Left != null && binaryExpression.Right != null)
+                if (binaryExpression.Left == null || binaryExpression.Right == null)
                 {
-                    var left = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
-                    CheckForTypeConversion(binaryExpression.Left, left, reportDiagnostic, filePath);
+                    continue;
+                }
 
-                    var right = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
-                    CheckForTypeConversion(binaryExpression.Right, right, reportDiagnostic, filePath);
+                bool isConstant = semanticModel.GetConstantValue(binaryExpression, cancellationToken).HasValue;
+                if (isConstant)
+                {
+                    continue;
+                }
 
-                    // regular string allocation
-                    if (left.Type != null && left.Type.SpecialType == SpecialType.System_String || right.Type != null && right.Type.SpecialType == SpecialType.System_String)
-                    {
-                        reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
-                        HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
-                    }
+                var left = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
+                CheckForTypeConversion(binaryExpression.Left, left, reportDiagnostic, filePath);
+
+                var right = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
+                CheckForTypeConversion(binaryExpression.Right, right, reportDiagnostic, filePath);
+
+                // regular string allocation
+                if (left.Type?.SpecialType == SpecialType.System_String || right.Type?.SpecialType == SpecialType.System_String)
+                {
+                    reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
+                    HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
                 }
             }
         }
