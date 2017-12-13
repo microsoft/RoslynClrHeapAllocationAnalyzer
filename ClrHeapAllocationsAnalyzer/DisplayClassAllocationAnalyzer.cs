@@ -1,7 +1,6 @@
 ﻿namespace ClrHeapAllocationAnalyzer
 {
     using System;
-    using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
     using System.Threading;
@@ -43,45 +42,40 @@
                 return;
             }
 
-            var lambdaExpr = node as SimpleLambdaExpressionSyntax;
-            if (lambdaExpr != null)
+            if (node is SimpleLambdaExpressionSyntax lambdaExpr)
             {
                 GenericMethodCheck(semanticModel, node, lambdaExpr.ArrowToken.GetLocation(), reportDiagnostic, cancellationToken);
                 ClosureCaptureDataFlowAnalysis(semanticModel.AnalyzeDataFlow(lambdaExpr), reportDiagnostic, lambdaExpr.ArrowToken.GetLocation());
                 return;
             }
 
-            var parenLambdaExpr = node as ParenthesizedLambdaExpressionSyntax;
-            if (parenLambdaExpr != null)
+            if (node is ParenthesizedLambdaExpressionSyntax parenLambdaExpr)
             {
                 GenericMethodCheck(semanticModel, node, parenLambdaExpr.ArrowToken.GetLocation(), reportDiagnostic, cancellationToken);
                 ClosureCaptureDataFlowAnalysis(semanticModel.AnalyzeDataFlow(parenLambdaExpr), reportDiagnostic, parenLambdaExpr.ArrowToken.GetLocation());
                 return;
             }
         }
-
+        
         private static void ClosureCaptureDataFlowAnalysis(DataFlowAnalysis flow, Action<Diagnostic> reportDiagnostic, Location location)
         {
-            if (flow != null && flow.DataFlowsIn != null)
+            if (flow?.Captured.Length <= 0)
             {
-                var captures = new List<string>();
-                foreach (var dfaIn in flow.DataFlowsIn)
+                return;
+            }
+
+            foreach (var capture in flow.Captured)
+            {
+                if (capture.Name != null && capture.Locations != null)
                 {
-                    if (dfaIn.Name != null && dfaIn.Locations != null)
-                    {
-                        captures.Add(dfaIn.Name);
-                        foreach (var l in dfaIn.Locations)
-                        {
-                            reportDiagnostic(Diagnostic.Create(ClosureCaptureRule, l, EmptyMessageArgs));
-                        }
+                    foreach (var l in capture.Locations)
+                     {
+                        reportDiagnostic(Diagnostic.Create(ClosureCaptureRule, l, EmptyMessageArgs));
                     }
                 }
-
-                if (captures.Count > 0)
-                {
-                    reportDiagnostic(Diagnostic.Create(ClosureDriverRule, location, new object[] { string.Join(",", captures) }));
-                }
             }
+
+            reportDiagnostic(Diagnostic.Create(ClosureDriverRule, location, new[] { string.Join(",", flow.Captured.Select(x => x.Name)) }));
         }
 
         private static void GenericMethodCheck(SemanticModel semanticModel, SyntaxNode node, Location location, Action<Diagnostic> reportDiagnostic, CancellationToken cancellationToken)
