@@ -78,7 +78,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
         public void Non_constant_value_types_in_CSharp_string_concatenation()
         {
             var @script =
-                @"char c = 'c'; //F();
+                @"System.DateTime c = System.DateTime.Now;;
                 string s1 = ""char value will box"" + c;";
             var analyser = new ConcatenationAllocationAnalyzer();
             var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));

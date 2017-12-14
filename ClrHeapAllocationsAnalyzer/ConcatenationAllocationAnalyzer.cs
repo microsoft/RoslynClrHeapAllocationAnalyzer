@@ -35,29 +35,41 @@
 
             foreach (var binaryExpression in binaryExpressions)
             {
-                if (binaryExpression.Left != null && binaryExpression.Right != null)
+                if (binaryExpression.Left == null || binaryExpression.Right == null)
                 {
-                    var left = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
-                    CheckForTypeConversion(binaryExpression.Left, left, reportDiagnostic, filePath);
+                    continue;
+                }
 
-                    var right = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
-                    CheckForTypeConversion(binaryExpression.Right, right, reportDiagnostic, filePath);
+                var left = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
+                var leftConversion = semanticModel.GetConversion(binaryExpression.Left, cancellationToken);
+                CheckTypeConversion(left, leftConversion, reportDiagnostic, binaryExpression.Left.GetLocation(), filePath);
 
-                    // regular string allocation
-                    if (left.Type != null && left.Type.SpecialType == SpecialType.System_String || right.Type != null && right.Type.SpecialType == SpecialType.System_String)
-                    {
-                        reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
-                        HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
-                    }
+                var right = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
+                var rightConversion = semanticModel.GetConversion(binaryExpression.Right, cancellationToken);
+                CheckTypeConversion(right, rightConversion, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
+
+                // regular string allocation
+                if (left.Type != null && left.Type.SpecialType == SpecialType.System_String || right.Type != null && right.Type.SpecialType == SpecialType.System_String)
+                {
+                    reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
+                    HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
                 }
             }
         }
 
-        private static void CheckForTypeConversion(ExpressionSyntax expression, TypeInfo typeInfo, Action<Diagnostic> reportDiagnostic, string filePath)
+        private static void CheckTypeConversion(TypeInfo typeInfo, Conversion conversionInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
         {
-            if (typeInfo.Type != null && typeInfo.Type.IsValueType && typeInfo.ConvertedType != null && !typeInfo.ConvertedType.IsValueType)
+            bool IsOptimizedValueType(ITypeSymbol type)
             {
-                reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeInAStringConcatenationRule, expression.GetLocation(), new object[] { typeInfo.Type.ToDisplayString() }));
+                return type.SpecialType == SpecialType.System_Boolean ||
+                       type.SpecialType == SpecialType.System_Char ||
+                       type.SpecialType == SpecialType.System_IntPtr ||
+                       type.SpecialType == SpecialType.System_UIntPtr;
+            }
+
+            if (conversionInfo.IsBoxing && !IsOptimizedValueType(typeInfo.Type))
+            {
+                reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeInAStringConcatenationRule, location, new object[] { typeInfo.Type.ToDisplayString() }));
                 HeapAllocationAnalyzerEventSource.Logger.BoxingAllocationInStringConcatenation(filePath);
             }
         }
