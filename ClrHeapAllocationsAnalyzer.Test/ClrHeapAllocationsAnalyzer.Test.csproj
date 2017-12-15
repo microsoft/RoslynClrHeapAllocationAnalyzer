@@ -187,8 +187,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ClrHeapAllocationsAnalyzer\ClrHeapAllocationAnalyzer.csproj">
-      <Project>{eaf46154-6613-4cd6-be70-9015ff94f9cf}</Project>
-      <Name>ClrHeapAllocationAnalyzer</Name>
+      <Project>{5bcbd35c-219c-4bb0-8198-a5eeb0060754}</Project>
+      <Name>ClrHeapAllocationAnalyzer1</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

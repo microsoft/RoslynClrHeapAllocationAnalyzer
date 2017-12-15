@@ -1,9 +1,8 @@
 ﻿using System.Collections.Immutable;
-using ClrHeapAllocationAnalyzer;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace ClrHeapAllocationsAnalyzer.Test
+namespace ClrHeapAllocationAnalyzer.Test
 {
     [TestClass]
     public class CallSiteImplicitAllocationAnalyzerTests : AllocationAnalyzerTests

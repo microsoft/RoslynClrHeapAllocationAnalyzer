@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="ClrHeapAllocationAnalyzer..f21077b6-a9d3-4fb6-81a3-b46dfd105fd4" Version="1.0" Language="en-US" Publisher="MJSABBY"/>
+    <Identity Id="ClrHeapAllocationAnalyzer..f21077b6-a9d3-4fb6-81a3-b46dfd105fd4" Version="1.0" Language="en-US" Publisher="MJSABBY" />
     <DisplayName>Clr Heap Allocation Analyzer</DisplayName>
     <Description xml:space="preserve">Clr Heap Allocation Analyzer is a Roslyn based Diagnostic Analyzer that is able to detect most allocations in code in the local method and bring them to your attention in Visual Studio. It can detect subtle allocations caused by value type boxing, closure captures, delegate instantiations, etc.</Description>
     <MoreInfo>https://github.com/mjsabby/RoslynClrHeapAllocationAnalyzer</MoreInfo>
@@ -15,10 +15,12 @@
   </Installation>
   <Dependencies>
     <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.6,)" />
+    <Dependency Id="Microsoft.VisualStudio.MPF.15.0" DisplayName="Visual Studio MPF 15.0" d:Source="Installed" Version="[15.0]" />
   </Dependencies>
   <Assets>
-    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="ClrHeapAllocationAnalyzer" Path="|ClrHeapAllocationAnalyzer|" />
-    <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="ClrHeapAllocationAnalyzer" Path="|ClrHeapAllocationAnalyzer|" />
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="ClrHeapAllocationAnalyzer1" Path="|ClrHeapAllocationAnalyzer1" />
+    <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="ClrHeapAllocationAnalyzer1" Path="|ClrHeapAllocationAnalyzer1|" />
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
   </Assets>
   <Prerequisites>
     <Prerequisite Id="Microsoft.VisualStudio.Component.Roslyn.LanguageServices" Version="[15.0.26208.0,16.0)" DisplayName="C# and Visual Basic" />

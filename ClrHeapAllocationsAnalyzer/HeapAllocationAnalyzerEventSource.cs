@@ -1,7 +1,7 @@
-﻿namespace ClrHeapAllocationAnalyzer
-{
-    using System.Diagnostics.Tracing;
+﻿using System.Diagnostics.Tracing;
 
+namespace ClrHeapAllocationAnalyzer
+{
     internal sealed class HeapAllocationAnalyzerEventSource : EventSource
     {
         public static HeapAllocationAnalyzerEventSource Logger = new HeapAllocationAnalyzerEventSource();

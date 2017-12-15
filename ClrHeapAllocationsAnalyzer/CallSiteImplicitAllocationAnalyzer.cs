@@ -1,20 +1,26 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using ClrHeapAllocationAnalyzer.Common;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
+
 namespace ClrHeapAllocationAnalyzer
 {
-    using System;
-    using System.Collections.Immutable;
-    using System.Runtime.CompilerServices;
-    using System.Threading;
-    using Microsoft.CodeAnalysis;
-    using Microsoft.CodeAnalysis.CSharp;
-    using Microsoft.CodeAnalysis.CSharp.Syntax;
-    using Microsoft.CodeAnalysis.Diagnostics;
-
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class CallSiteImplicitAllocationAnalyzer : DiagnosticAnalyzer
-    {
-        public static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor("HeapAnalyzerImplicitParamsRule", "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", "Performance", DiagnosticSeverity.Warning, true);
+    public sealed class CallSiteImplicitAllocationAnalyzer : DiagnosticAnalyzer {
+        private static readonly string ParamsParameterRuleId = "HeapAnalyzerImplicitParamsRule";
+        private static readonly string ValueTypeNonOverridenCallRuleId = "HeapAnalyzerValueTypeNonOverridenCallRule";
+        private static readonly string[] IDs = { ParamsParameterRuleId, ValueTypeNonOverridenCallRuleId };
 
-        public static DiagnosticDescriptor ValueTypeNonOverridenCallRule = new DiagnosticDescriptor("HeapAnalyzerValueTypeNonOverridenCallRule", "Non-overridden virtual method call on value type", "Non-overridden virtual method call on a value type adds a boxing or constrained instruction", "Performance", DiagnosticSeverity.Warning, true);
+        public static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor(ParamsParameterRuleId, "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", "Performance", DiagnosticSeverity.Warning, true);
+
+        public static DiagnosticDescriptor ValueTypeNonOverridenCallRule = new DiagnosticDescriptor(ValueTypeNonOverridenCallRuleId, "Non-overridden virtual method call on value type", "Non-overridden virtual method call on a value type adds a boxing or constrained instruction", "Performance", DiagnosticSeverity.Warning, true);
 
         internal static object[] EmptyMessageArgs = { };
 
@@ -25,7 +31,16 @@ namespace ClrHeapAllocationAnalyzer
             context.RegisterSyntaxNodeAction(AnalyzeNode, SyntaxKind.InvocationExpression);
         }
 
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
+        private void AnalyzeNode(SyntaxNodeAnalysisContext context)
+        {
+            var enabledRules = Settings.GetEnabled(IDs);
+            if (enabledRules.Any())
+            {
+                AnalyzeNode(context, enabledRules);
+            }
+        }
+
+        private static void AnalyzeNode(SyntaxNodeAnalysisContext context, IReadOnlyCollection<string> enabledRules)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
@@ -37,15 +52,21 @@ namespace ClrHeapAllocationAnalyzer
 
             if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is IMethodSymbol methodInfo)
             {
-                CheckNonOverridenMethodOnStruct(methodInfo, reportDiagnostic, invocationExpression, filePath);
-                if (methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
+                if (enabledRules.Contains(ValueTypeNonOverridenCallRuleId))
                 {
-                    var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
-                    if (lastParam.IsParams)
-                    {
-                        CheckParam(invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
-                    }
+                    CheckNonOverridenMethodOnStruct(methodInfo, reportDiagnostic, invocationExpression, filePath);
                 }
+
+                if (enabledRules.Contains(ParamsParameterRuleId))
+                {
+                    if (methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
+                    {
+                        var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
+                        if (lastParam.IsParams) {
+                            CheckParam(invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                        }
+                    }
+                }  
             }
         }
 
