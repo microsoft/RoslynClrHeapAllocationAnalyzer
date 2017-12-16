@@ -1,4 +1,7 @@
 ﻿using System.Collections.Immutable;
+using System.Linq;
+using ClrHeapAllocationAnalyzer.Common;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -7,6 +10,14 @@ namespace ClrHeapAllocationAnalyzer.Test
     [TestClass]
     public class CallSiteImplicitAllocationAnalyzerTests : AllocationAnalyzerTests
     {
+        [ClassInitialize]
+        public static void ClassInit(TestContext context)
+        {
+            AllocationRules.Settings = new HeapAllocationAnalyzerSettings(new InMemorySettingsStore());
+            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ParamsParameterRule);
+            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule);
+        }
+
         [TestMethod]
         public void CallSiteImplicitAllocation_Param()
         {
@@ -72,6 +83,39 @@ struct OverrideToHashCode
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (3,14): warning HeapAnalyzerValueTypeNonOverridenCallRule: Non-overriden virtual method call on a value type adds a boxing or constrained instruction
             AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule.Id, line: 3, character: 14);
+        }
+
+        [TestMethod]
+        public void CallSiteImplicitAllocation_SettingsChanged_OnlyAnalysisOnEnabledRules()
+        {
+            var store = new InMemorySettingsStore();
+            var settings = new HeapAllocationAnalyzerSettings(store);
+
+            AllocationRules.Settings = settings;
+            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ParamsParameterRule);
+            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule);
+
+            var sampleProgram =
+                @"using System;
+                  struct Normal { }
+                  public void Params(params int[] args) { }
+
+                  int normal = new Normal().GetHashCode();
+                  Params(1, 2);";
+
+            var analyser = new CallSiteImplicitAllocationAnalyzer();
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
+            Assert.AreEqual(2, info.Allocations.Count);
+
+            settings.SetSeverity(CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, DiagnosticSeverity.Hidden);
+
+            info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
+            Assert.AreEqual(0, info.Allocations.Count(x => x.Id == CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id));
+
+            settings.SetSeverity(CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule.Id, DiagnosticSeverity.Hidden);
+
+            info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
+            Assert.AreEqual(0, info.Allocations.Count(x => x.Id == CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule.Id));
         }
     }
 }

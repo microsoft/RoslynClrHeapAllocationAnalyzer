@@ -115,7 +115,6 @@
     <Compile Include="GeneralOptionsPage.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="HeapAllocationAnalyzerSettings.cs" />
     <Compile Include="HeapAllocationAnalyzerOptionsPackage.cs" />
   </ItemGroup>
   <ItemGroup>

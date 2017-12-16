@@ -26,10 +26,13 @@ namespace ClrHeapAllocationAnalyzer
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(AllocationRules.GetDescriptor(ParamsParameterRule.Id), AllocationRules.GetDescriptor(ValueTypeNonOverridenCallRule.Id));
 
-        public override void Initialize(AnalysisContext context) {
+        public CallSiteImplicitAllocationAnalyzer()
+        {
             AllocationRules.RegisterAnalyzerRule(ParamsParameterRule);
             AllocationRules.RegisterAnalyzerRule(ValueTypeNonOverridenCallRule);
+        }
 
+        public override void Initialize(AnalysisContext context) {
             context.RegisterSyntaxNodeAction(AnalyzeNode, SyntaxKind.InvocationExpression);
         }
 

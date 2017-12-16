@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using ClrHeapAllocationAnalyzer.Common;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -10,6 +11,13 @@ namespace ClrHeapAllocationAnalyzer.Test
     [TestClass]
     public class StackOverflowAnswerTests : AllocationAnalyzerTests
     {
+        [ClassInitialize]
+        public static void ClassInit(TestContext context) {
+            AllocationRules.Settings = new HeapAllocationAnalyzerSettings(new InMemorySettingsStore());
+            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ParamsParameterRule);
+            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule);
+        }
+
         [TestMethod]
         public void Converting_any_value_type_to_System_Object_type()
         {

@@ -39,7 +39,7 @@ namespace ClrHeapAllocationAnalyzer.Common {
                 throw new ArgumentException($"Already have a rule with id '{defaultDescription.Id}'", nameof(defaultDescription));
             }
 
-            DiagnosticSeverity severity = Settings.GetSeverity(defaultDescription.Id) ?? defaultDescription.Severity;
+            DiagnosticSeverity severity = Settings.GetSeverity(defaultDescription.Id, defaultDescription.Severity);
             Descriptions.Add(defaultDescription.Id, defaultDescription.WithSeverity(severity));
         }
 
@@ -84,10 +84,12 @@ namespace ClrHeapAllocationAnalyzer.Common {
             return Settings.Enabled && Descriptions[ruleId].Severity != DiagnosticSeverity.Hidden;
         }
 
-        private static void OnSettingsChanged(object sender, EventArgs eventArgs) {
-            foreach (var d in Descriptions)
+        private static void OnSettingsChanged(object sender, EventArgs eventArgs)
+        {
+            var descriptionsCopy = new Dictionary<string, AllocationRuleDescription>(Descriptions);
+            foreach (var d in descriptionsCopy)
             {
-                DiagnosticSeverity severity = Settings.GetSeverity(d.Key) ?? throw new Exception($"Cannot find severity for rule {d.Key}");
+                DiagnosticSeverity severity = Settings.GetSeverity(d.Key, d.Value.Severity);
                 if (Descriptions[d.Key].Severity != severity)
                 {
                     Descriptions[d.Key] = Descriptions[d.Key].WithSeverity(severity);
