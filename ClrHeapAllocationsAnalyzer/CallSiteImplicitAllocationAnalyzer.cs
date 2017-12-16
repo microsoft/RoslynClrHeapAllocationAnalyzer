@@ -14,8 +14,8 @@ namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class CallSiteImplicitAllocationAnalyzer : DiagnosticAnalyzer {
-        private static readonly string ParamsParameterRuleId = "HeapAnalyzerImplicitParamsRule";
-        private static readonly string ValueTypeNonOverridenCallRuleId = "HeapAnalyzerValueTypeNonOverridenCallRule";
+        private static readonly string ParamsParameterRuleId = "HAA0101";
+        private static readonly string ValueTypeNonOverridenCallRuleId = "HAA0102";
         private static readonly string[] IDs = { ParamsParameterRuleId, ValueTypeNonOverridenCallRuleId };
 
         public static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor(ParamsParameterRuleId, "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", "Performance", DiagnosticSeverity.Warning, true);
