@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using ClrHeapAllocationAnalyzer.Common;
+using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.Settings;
 
 namespace ClrHeapAllocationAnalyzer.Vsix {
@@ -11,6 +12,8 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
 
         private bool enabled;
 
+        public event EventHandler SettingsChanged;
+
         public bool Enabled
         {
             get => enabled;
@@ -18,9 +21,14 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
                 if (value != enabled)
                 {
                     enabled = value;
-                    SaveSettings();
+                    OnSettingsChanged();
                 }
             }
+        }
+
+        public DiagnosticSeverity? GetSeverity(string ruleId)
+        {
+            return null; // TODO
         }
 
         public HeapAllocationAnalyzerSettings(WritableSettingsStore settingsStore)
@@ -29,6 +37,12 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
             LoadSettings();
         }
 
+
+        private void OnSettingsChanged()
+        {
+            SaveSettings();
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
+        }
 
         private void LoadSettings()
         {
@@ -43,12 +57,14 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
                     Enabled = true;
                 }
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 Debug.Fail(ex.Message);
             }
         }
 
-        private void SaveSettings() {
+        private void SaveSettings()
+        {
             try
             {
                 if (!settingsStore.CollectionExists(CollectionPath))

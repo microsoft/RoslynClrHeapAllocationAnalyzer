@@ -14,33 +14,35 @@ namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class CallSiteImplicitAllocationAnalyzer : DiagnosticAnalyzer {
-        private static readonly string ParamsParameterRuleId = "HAA0101";
-        private static readonly string ValueTypeNonOverridenCallRuleId = "HAA0102";
-        private static readonly string[] IDs = { ParamsParameterRuleId, ValueTypeNonOverridenCallRuleId };
+        public static readonly AllocationRuleDescription ParamsParameterRule =
+            new AllocationRuleDescription("HAA0101", "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", DiagnosticSeverity.Warning);
 
-        public static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor(ParamsParameterRuleId, "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", "Performance", DiagnosticSeverity.Warning, true);
+        public static readonly AllocationRuleDescription ValueTypeNonOverridenCallRule =
+            new AllocationRuleDescription("HAA0102", "Non-overridden virtual method call on value type", "Non-overridden virtual method call on a value type adds a boxing or constrained instruction", DiagnosticSeverity.Warning);
 
-        public static DiagnosticDescriptor ValueTypeNonOverridenCallRule = new DiagnosticDescriptor(ValueTypeNonOverridenCallRuleId, "Non-overridden virtual method call on value type", "Non-overridden virtual method call on a value type adds a boxing or constrained instruction", "Performance", DiagnosticSeverity.Warning, true);
+        private static readonly string[] AllRules = { ParamsParameterRule.Id, ValueTypeNonOverridenCallRule.Id };
 
-        internal static object[] EmptyMessageArgs = { };
+        private static readonly object[] EmptyMessageArgs = { };
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ParamsParameterRule, ValueTypeNonOverridenCallRule);
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(AllocationRules.GetDescriptor(ParamsParameterRule.Id), AllocationRules.GetDescriptor(ValueTypeNonOverridenCallRule.Id));
 
-        public override void Initialize(AnalysisContext context)
-        {
+        public override void Initialize(AnalysisContext context) {
+            AllocationRules.RegisterAnalyzerRule(ParamsParameterRule);
+            AllocationRules.RegisterAnalyzerRule(ValueTypeNonOverridenCallRule);
+
             context.RegisterSyntaxNodeAction(AnalyzeNode, SyntaxKind.InvocationExpression);
         }
 
-        private void AnalyzeNode(SyntaxNodeAnalysisContext context)
+        private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
         {
-            var enabledRules = Settings.GetEnabled(IDs);
+            var enabledRules = AllocationRules.GetEnabled(AllRules);
             if (enabledRules.Any())
             {
                 AnalyzeNode(context, enabledRules);
             }
         }
 
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context, IReadOnlyCollection<string> enabledRules)
+        private static void AnalyzeNode(SyntaxNodeAnalysisContext context, IReadOnlyDictionary<string, DiagnosticDescriptor> enabledRules)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
@@ -52,18 +54,18 @@ namespace ClrHeapAllocationAnalyzer
 
             if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is IMethodSymbol methodInfo)
             {
-                if (enabledRules.Contains(ValueTypeNonOverridenCallRuleId))
+                if (enabledRules.ContainsKey(ValueTypeNonOverridenCallRule.Id))
                 {
-                    CheckNonOverridenMethodOnStruct(methodInfo, reportDiagnostic, invocationExpression, filePath);
+                    CheckNonOverridenMethodOnStruct(enabledRules[ValueTypeNonOverridenCallRule.Id], methodInfo, reportDiagnostic, invocationExpression, filePath);
                 }
 
-                if (enabledRules.Contains(ParamsParameterRuleId))
+                if (enabledRules.ContainsKey(ParamsParameterRule.Id))
                 {
                     if (methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
                     {
                         var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
                         if (lastParam.IsParams) {
-                            CheckParam(invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                            CheckParam(enabledRules[ParamsParameterRule.Id], invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
                         }
                     }
                 }  
@@ -71,12 +73,12 @@ namespace ClrHeapAllocationAnalyzer
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void CheckParam(InvocationExpressionSyntax invocationExpression, IMethodSymbol methodInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void CheckParam(DiagnosticDescriptor rule, InvocationExpressionSyntax invocationExpression, IMethodSymbol methodInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var arguments = invocationExpression.ArgumentList.Arguments;
             if (arguments.Count != methodInfo.Parameters.Length)
             {
-                reportDiagnostic(Diagnostic.Create(ParamsParameterRule, invocationExpression.GetLocation(), EmptyMessageArgs));
+                reportDiagnostic(Diagnostic.Create(rule, invocationExpression.GetLocation(), EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.ParamsAllocation(filePath);
             }
             else
@@ -85,13 +87,13 @@ namespace ClrHeapAllocationAnalyzer
                 var lastArgumentTypeInfo = semanticModel.GetTypeInfo(arguments[lastIndex].Expression, cancellationToken);
                 if (lastArgumentTypeInfo.Type != null && !lastArgumentTypeInfo.Type.Equals(methodInfo.Parameters[lastIndex].Type))
                 {
-                    reportDiagnostic(Diagnostic.Create(ParamsParameterRule, invocationExpression.GetLocation(), EmptyMessageArgs));
+                    reportDiagnostic(Diagnostic.Create(rule, invocationExpression.GetLocation(), EmptyMessageArgs));
                     HeapAllocationAnalyzerEventSource.Logger.ParamsAllocation(filePath);
                 }
             }
         }
 
-        private static void CheckNonOverridenMethodOnStruct(IMethodSymbol methodInfo, Action<Diagnostic> reportDiagnostic, SyntaxNode node, string filePath)
+        private static void CheckNonOverridenMethodOnStruct(DiagnosticDescriptor rule, IMethodSymbol methodInfo, Action<Diagnostic> reportDiagnostic, SyntaxNode node, string filePath)
         {
             if (methodInfo.ContainingType != null)
             {
@@ -99,7 +101,7 @@ namespace ClrHeapAllocationAnalyzer
                 var containingType = methodInfo.ContainingType.ToString();
                 if (string.Equals(containingType, "System.ValueType", StringComparison.OrdinalIgnoreCase) || string.Equals(containingType, "System.Enum", StringComparison.OrdinalIgnoreCase))
                 {
-                    reportDiagnostic(Diagnostic.Create(ValueTypeNonOverridenCallRule, node.GetLocation(), EmptyMessageArgs));
+                    reportDiagnostic(Diagnostic.Create(rule, node.GetLocation(), EmptyMessageArgs));
                     HeapAllocationAnalyzerEventSource.Logger.NonOverridenVirtualMethodCallOnValueType(filePath);
                 }
             }

@@ -173,7 +173,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
+    <None Include="app.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
@@ -186,6 +188,10 @@
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ClrHeapAllocationAnalyzer.Common\ClrHeapAllocationAnalyzer.Common.csproj">
+      <Project>{82798FE9-7E3D-461E-A0CE-D166D00C35DF}</Project>
+      <Name>ClrHeapAllocationAnalyzer.Common</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ClrHeapAllocationsAnalyzer\ClrHeapAllocationAnalyzer.csproj">
       <Project>{5bcbd35c-219c-4bb0-8198-a5eeb0060754}</Project>
       <Name>ClrHeapAllocationAnalyzer1</Name>

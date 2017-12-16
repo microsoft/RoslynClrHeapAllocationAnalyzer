@@ -12,13 +12,13 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
 
         public GeneralOptionsPage()
         {
-            Enabled = Settings.Instance.Enabled;
+            Enabled = AllocationRules.Settings.Enabled;
         }
 
         protected override void OnApply(PageApplyEventArgs args)
         {
             base.OnApply(args);
-            Settings.Instance.Enabled = Enabled;
+            AllocationRules.Settings.Enabled = Enabled;
         }
     }
 }
