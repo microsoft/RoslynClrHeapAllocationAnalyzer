@@ -51,7 +51,7 @@ namespace ClrHeapAllocationAnalyzer.Common {
             }
 
             AllocationRuleDescription d = Descriptions[ruleId];
-            return new DiagnosticDescriptor(d.Id, d.Title, d.MessageFormat, "Performance", d.Severity, true);
+            return new DiagnosticDescriptor(d.Id, d.Title, d.MessageFormat, "Performance", d.Severity, true, helpLinkUri: d.HelpLinkUri);
         }
 
         public static IEnumerable<AllocationRuleDescription> GetDescriptions()

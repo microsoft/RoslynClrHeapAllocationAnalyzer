@@ -13,7 +13,8 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class CallSiteImplicitAllocationAnalyzer : DiagnosticAnalyzer {
+    public sealed class CallSiteImplicitAllocationAnalyzer : DiagnosticAnalyzer
+    {
         public static readonly AllocationRuleDescription ParamsParameterRule =
             new AllocationRuleDescription("HAA0101", "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", DiagnosticSeverity.Warning);
 
@@ -24,7 +25,11 @@ namespace ClrHeapAllocationAnalyzer
 
         private static readonly object[] EmptyMessageArgs = { };
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(AllocationRules.GetDescriptor(ParamsParameterRule.Id), AllocationRules.GetDescriptor(ValueTypeNonOverridenCallRule.Id));
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => 
+            ImmutableArray.Create(
+                AllocationRules.GetDescriptor(ParamsParameterRule.Id),
+                AllocationRules.GetDescriptor(ValueTypeNonOverridenCallRule.Id)
+            );
 
         public CallSiteImplicitAllocationAnalyzer()
         {

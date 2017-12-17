@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Linq;
+using ClrHeapAllocationAnalyzer.Common;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -8,6 +9,13 @@ namespace ClrHeapAllocationAnalyzer.Test
     [TestClass]
     public class ConcatenationAllocationAnalyzerTests : AllocationAnalyzerTests
     {
+        [ClassInitialize]
+        public static void ClassInit(TestContext context) {
+            AllocationRules.Settings = new HeapAllocationAnalyzerSettings(new InMemorySettingsStore());
+            AllocationRules.Settings.GetSeverity(ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule);
+            AllocationRules.Settings.GetSeverity(ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule);
+        }
+
         [TestMethod]
         public void ConcatenationAllocation_Basic()
         {
