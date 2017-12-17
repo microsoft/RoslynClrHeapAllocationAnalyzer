@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using ClrHeapAllocationAnalyzer.Common;
@@ -13,11 +12,11 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class CallSiteImplicitAllocationAnalyzer : DiagnosticAnalyzer
+    public sealed class CallSiteImplicitAllocationAnalyzer : AllocationAnalyzer
     {
-        private static readonly string[] AllRules = {AllocationRules.ParamsParameterRule.Id, AllocationRules.ValueTypeNonOverridenCallRule.Id };
+        protected override string[] Rules => new[] {AllocationRules.ParamsParameterRule.Id, AllocationRules.ValueTypeNonOverridenCallRule.Id};
 
-        private static readonly object[] EmptyMessageArgs = { };
+        protected override SyntaxKind[] Expressions => new[] { SyntaxKind.InvocationExpression };
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => 
             ImmutableArray.Create(
@@ -25,20 +24,9 @@ namespace ClrHeapAllocationAnalyzer
                 AllocationRules.GetDescriptor(AllocationRules.ValueTypeNonOverridenCallRule.Id)
             );
 
-        public override void Initialize(AnalysisContext context) {
-            context.RegisterSyntaxNodeAction(AnalyzeNode, SyntaxKind.InvocationExpression);
-        }
+        private static readonly object[] EmptyMessageArgs = { };
 
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
-        {
-            var enabledRules = AllocationRules.GetEnabled(AllRules);
-            if (enabledRules.Any())
-            {
-                AnalyzeNode(context, enabledRules);
-            }
-        }
-
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context, IReadOnlyDictionary<string, DiagnosticDescriptor> enabledRules)
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, IReadOnlyDictionary<string, DiagnosticDescriptor> enabledRules)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;

@@ -17,11 +17,25 @@ namespace ClrHeapAllocationAnalyzer.Common {
         public static readonly AllocationRuleDescription ValueTypeToReferenceTypeInAStringConcatenationRule =
             new AllocationRuleDescription("HAA0202", "Value type to reference type conversion allocation for string concatenation", "Value type ({0}) is being boxed to a reference type for a string concatenation.", DiagnosticSeverity.Warning, "http://msdn.microsoft.com/en-us/library/yz2be5wk.aspx");
 
+        // Used by DisplayClassAllocationAnalyzer
+        public static readonly AllocationRuleDescription ClosureDriverRule =
+            new AllocationRuleDescription("HAA0301", "Closure Allocation Source", "Heap allocation of closure Captures: {0}", DiagnosticSeverity.Warning);
+
+        public static readonly AllocationRuleDescription ClosureCaptureRule =
+            new AllocationRuleDescription("HAA0302", "Display class allocation to capture closure", "The compiler will emit a class that will hold this as a field to allow capturing of this closure", DiagnosticSeverity.Warning);
+
+        public static readonly AllocationRuleDescription LambaOrAnonymousMethodInGenericMethodRule =
+            new AllocationRuleDescription("HAA0303", "Lambda or anonymous method in a generic method allocates a delegate instance", "Considering moving this out of the generic method", DiagnosticSeverity.Warning);
+
+
         public static IEnumerable<AllocationRuleDescription> DefaultValues() {
             yield return ParamsParameterRule;
             yield return ValueTypeNonOverridenCallRule;
             yield return StringConcatenationAllocationRule;
             yield return ValueTypeToReferenceTypeInAStringConcatenationRule;
+            yield return ClosureDriverRule;
+            yield return ClosureCaptureRule;
+            yield return LambaOrAnonymousMethodInGenericMethodRule;
         }
     }
 }

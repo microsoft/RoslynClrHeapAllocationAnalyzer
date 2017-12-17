@@ -11,12 +11,10 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class ConcatenationAllocationAnalyzer : DiagnosticAnalyzer {
-        private static readonly string[] AllRules =
-        {
-            AllocationRules.StringConcatenationAllocationRule.Id,
-            AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id
-        };
+    public sealed class ConcatenationAllocationAnalyzer : AllocationAnalyzer {
+        protected override string[] Rules => new[] { AllocationRules.StringConcatenationAllocationRule.Id, AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id };
+
+        protected override SyntaxKind[] Expressions => new[] { SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression };
 
         private static readonly object[] EmptyMessageArgs = { };
 
@@ -26,20 +24,7 @@ namespace ClrHeapAllocationAnalyzer
                 AllocationRules.GetDescriptor(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id)
             );
 
-        public override void Initialize(AnalysisContext context)
-        {
-            context.RegisterSyntaxNodeAction(AnalyzeNode, SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression);
-        }
-
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context) {
-            var enabledRules = AllocationRules.GetEnabled(AllRules);
-            if (enabledRules.Any())
-            {
-                AnalyzeNode(context, enabledRules);
-            }
-        }
-
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context, IReadOnlyDictionary<string, DiagnosticDescriptor> enabledRules)
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, IReadOnlyDictionary<string, DiagnosticDescriptor> enabledRules)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;

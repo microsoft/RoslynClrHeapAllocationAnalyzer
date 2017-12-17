@@ -111,6 +111,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AllocationAnalyzer.cs" />
     <Compile Include="CallSiteImplicitAllocationAnalyzer.cs" />
     <Compile Include="ConcatenationAllocationAnalyzer.cs" />
     <Compile Include="DisplayClassAllocationAnalyzer.cs" />

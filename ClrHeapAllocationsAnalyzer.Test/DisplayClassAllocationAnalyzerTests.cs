@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using ClrHeapAllocationAnalyzer.Common;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -37,11 +38,11 @@ class Test
 
             Assert.AreEqual(3, info.Allocations.Count);
             // Diagnostic: (14,16): warning HeapAnalyzerLambdaInGenericMethodRule: Considering moving this out of the generic method
-            AssertEx.ContainsDiagnostic(info.Allocations, id: DisplayClassAllocationAnalyzer.LambaOrAnonymousMethodInGenericMethodRule.Id, line: 14, character: 16);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.LambaOrAnonymousMethodInGenericMethodRule.Id, line: 14, character: 16);
             // Diagnostic: (13,13): warning HeapAnalyzerClosureCaptureRule: The compiler will emit a class that will hold this as a field to allow capturing of this closure
-            AssertEx.ContainsDiagnostic(info.Allocations, id: DisplayClassAllocationAnalyzer.ClosureCaptureRule.Id, line: 13, character: 13);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ClosureCaptureRule.Id, line: 13, character: 13);
             // Diagnostic: (14,16): warning HeapAnalyzerClosureSourceRule: Heap allocation of closure Captures: counter
-            AssertEx.ContainsDiagnostic(info.Allocations, id: DisplayClassAllocationAnalyzer.ClosureDriverRule.Id, line: 14, character: 16);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ClosureDriverRule.Id, line: 14, character: 16);
         }
 
         [TestMethod]
@@ -67,9 +68,9 @@ public class Testing<T>
 
             Assert.AreEqual(2, info.Allocations.Count);
             // Diagnostic: (10,13): warning HeapAnalyzerClosureCaptureRule: The compiler will emit a class that will hold this as a field to allow capturing of this closure
-            AssertEx.ContainsDiagnostic(info.Allocations, id: DisplayClassAllocationAnalyzer.ClosureCaptureRule.Id, line: 10, character: 13);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ClosureCaptureRule.Id, line: 10, character: 13);
             // Diagnostic: (11,39): warning HeapAnalyzerClosureSourceRule: Heap allocation of closure Captures: min
-            AssertEx.ContainsDiagnostic(info.Allocations, id: DisplayClassAllocationAnalyzer.ClosureDriverRule.Id, line: 11, character: 39);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ClosureDriverRule.Id, line: 11, character: 39);
         }
 
         [TestMethod]
@@ -92,9 +93,9 @@ foreach (string word in words) // <-- captured closure
 
             Assert.AreEqual(2, info.Allocations.Count);
             // Diagnostic: (7,17): warning HeapAnalyzerClosureCaptureRule: The compiler will emit a class that will hold this as a field to allow capturing of this closure
-            AssertEx.ContainsDiagnostic(info.Allocations, id: DisplayClassAllocationAnalyzer.ClosureCaptureRule.Id, line: 7, character: 17);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ClosureCaptureRule.Id, line: 7, character: 17);
             // Diagnostic: (9,20): warning HeapAnalyzerClosureSourceRule: Heap allocation of closure Captures: word
-            AssertEx.ContainsDiagnostic(info.Allocations, id: DisplayClassAllocationAnalyzer.ClosureDriverRule.Id, line: 9, character: 20);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ClosureDriverRule.Id, line: 9, character: 20);
         }
     }
 }
