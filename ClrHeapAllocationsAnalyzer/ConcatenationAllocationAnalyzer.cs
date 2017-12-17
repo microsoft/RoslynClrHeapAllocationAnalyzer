@@ -24,7 +24,7 @@ namespace ClrHeapAllocationAnalyzer
                 AllocationRules.GetDescriptor(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id)
             );
 
-        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, IReadOnlyDictionary<string, DiagnosticDescriptor> enabledRules)
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, EnabledRules rules)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
@@ -40,18 +40,18 @@ namespace ClrHeapAllocationAnalyzer
                     var left = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
                     var right = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
 
-                    if (enabledRules.ContainsKey(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id))
+                    if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id))
                     {
-                        CheckForTypeConversion(enabledRules[AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id], binaryExpression.Left, left, reportDiagnostic, filePath);
-                        CheckForTypeConversion(enabledRules[AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id], binaryExpression.Right, right, reportDiagnostic, filePath);
+                        CheckForTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id), binaryExpression.Left, left, reportDiagnostic, filePath);
+                        CheckForTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id), binaryExpression.Right, right, reportDiagnostic, filePath);
                     }
 
                     // regular string allocation
-                    if (enabledRules.ContainsKey(AllocationRules.StringConcatenationAllocationRule.Id))
+                    if (rules.IsEnabled(AllocationRules.StringConcatenationAllocationRule.Id))
                     {
                         if (left.Type != null && left.Type.SpecialType == SpecialType.System_String || right.Type != null && right.Type.SpecialType == SpecialType.System_String)
                         {
-                            reportDiagnostic(Diagnostic.Create(enabledRules[AllocationRules.StringConcatenationAllocationRule.Id], binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
+                            reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.StringConcatenationAllocationRule.Id), binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
                         }
                     }

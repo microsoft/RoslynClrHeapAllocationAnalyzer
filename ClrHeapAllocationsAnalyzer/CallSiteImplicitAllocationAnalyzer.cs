@@ -26,7 +26,7 @@ namespace ClrHeapAllocationAnalyzer
 
         private static readonly object[] EmptyMessageArgs = { };
 
-        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, IReadOnlyDictionary<string, DiagnosticDescriptor> enabledRules)
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, EnabledRules rules)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
@@ -38,18 +38,18 @@ namespace ClrHeapAllocationAnalyzer
 
             if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is IMethodSymbol methodInfo)
             {
-                if (enabledRules.ContainsKey(AllocationRules.ValueTypeNonOverridenCallRule.Id))
+                if (rules.IsEnabled(AllocationRules.ValueTypeNonOverridenCallRule.Id))
                 {
-                    CheckNonOverridenMethodOnStruct(enabledRules[AllocationRules.ValueTypeNonOverridenCallRule.Id], methodInfo, reportDiagnostic, invocationExpression, filePath);
+                    CheckNonOverridenMethodOnStruct(rules.Get(AllocationRules.ValueTypeNonOverridenCallRule.Id), methodInfo, reportDiagnostic, invocationExpression, filePath);
                 }
 
-                if (enabledRules.ContainsKey(AllocationRules.ParamsParameterRule.Id))
+                if (rules.IsEnabled(AllocationRules.ParamsParameterRule.Id))
                 {
                     if (methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
                     {
                         var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
                         if (lastParam.IsParams) {
-                            CheckParam(enabledRules[AllocationRules.ParamsParameterRule.Id], invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                            CheckParam(rules.Get(AllocationRules.ParamsParameterRule.Id), invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
                         }
                     }
                 }  

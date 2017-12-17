@@ -27,26 +27,26 @@ namespace ClrHeapAllocationAnalyzer
                 AllocationRules.GetDescriptor(AllocationRules.LambaOrAnonymousMethodInGenericMethodRule.Id)
             );
 
-        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, IReadOnlyDictionary<string, DiagnosticDescriptor> enabledRules)
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, EnabledRules rules)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
             var cancellationToken = context.CancellationToken;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
 
-            enabledRules.TryGetValue(AllocationRules.LambaOrAnonymousMethodInGenericMethodRule.Id, out DiagnosticDescriptor genericRule);
-            enabledRules.TryGetValue(AllocationRules.ClosureDriverRule.Id, out DiagnosticDescriptor driverRule);
-            enabledRules.TryGetValue(AllocationRules.ClosureCaptureRule.Id, out DiagnosticDescriptor captureRule);
+            bool genericRuleEnabled = rules.TryGet(AllocationRules.LambaOrAnonymousMethodInGenericMethodRule.Id, out DiagnosticDescriptor genericRule);
+            bool driverRuleEnabled = rules.TryGet(AllocationRules.ClosureDriverRule.Id, out DiagnosticDescriptor driverRule);
+            bool captureRuleEnabled = rules.TryGet(AllocationRules.ClosureCaptureRule.Id, out DiagnosticDescriptor captureRule);
 
             var anonExpr = node as AnonymousMethodExpressionSyntax;
             if (anonExpr?.Block?.ChildNodes() != null && anonExpr.Block.ChildNodes().Any())
             {
-                if (genericRule != null)
+                if (genericRuleEnabled)
                 {
                     GenericMethodCheck(genericRule, semanticModel, node, anonExpr.DelegateKeyword.GetLocation(), reportDiagnostic, cancellationToken);
                 }
 
-                if (captureRule != null && driverRule != null)
+                if (captureRuleEnabled || driverRuleEnabled)
                 {
                     ClosureCaptureDataFlowAnalysis(captureRule, driverRule, semanticModel.AnalyzeDataFlow(anonExpr.Block.ChildNodes().First(), anonExpr.Block.ChildNodes().Last()), reportDiagnostic, anonExpr.DelegateKeyword.GetLocation());
                 }
@@ -55,13 +55,13 @@ namespace ClrHeapAllocationAnalyzer
 
             if (node is SimpleLambdaExpressionSyntax lambdaExpr)
             {
-                if (genericRule != null)
+                if (genericRuleEnabled)
                 {
                     GenericMethodCheck(genericRule, semanticModel, node,
                         lambdaExpr.ArrowToken.GetLocation(), reportDiagnostic, cancellationToken);
                 }
 
-                if (captureRule != null && driverRule != null)
+                if (captureRuleEnabled || driverRuleEnabled)
                 {
                     ClosureCaptureDataFlowAnalysis(captureRule, driverRule, semanticModel.AnalyzeDataFlow(lambdaExpr), reportDiagnostic, lambdaExpr.ArrowToken.GetLocation());
                 }
@@ -70,13 +70,13 @@ namespace ClrHeapAllocationAnalyzer
 
             if (node is ParenthesizedLambdaExpressionSyntax parenLambdaExpr)
             {
-                if (genericRule != null)
+                if (genericRuleEnabled)
                 {
                     GenericMethodCheck(genericRule, semanticModel, node,
                         parenLambdaExpr.ArrowToken.GetLocation(), reportDiagnostic, cancellationToken);
                 }
 
-                if (captureRule != null && driverRule != null)
+                if (captureRuleEnabled || driverRuleEnabled)
                 {
                     ClosureCaptureDataFlowAnalysis(captureRule, driverRule, semanticModel.AnalyzeDataFlow(parenLambdaExpr), reportDiagnostic, parenLambdaExpr.ArrowToken.GetLocation());
                 }

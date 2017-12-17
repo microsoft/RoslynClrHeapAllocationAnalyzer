@@ -7,9 +7,6 @@ namespace ClrHeapAllocationAnalyzer.Common {
     {
         private static IHeapAllocationAnalyzerSettings settings;
 
-        private static readonly IReadOnlyDictionary<string, DiagnosticDescriptor> Empty =
-            new Dictionary<string, DiagnosticDescriptor>();
-
         private static readonly Dictionary<string, AllocationRuleDescription> Descriptions =
             new Dictionary<string, AllocationRuleDescription>();
 
@@ -57,7 +54,7 @@ namespace ClrHeapAllocationAnalyzer.Common {
             return Descriptions.Values;
         }
 
-        public static IReadOnlyDictionary<string, DiagnosticDescriptor> GetEnabled(IEnumerable<string> ruleIds)
+        public static EnabledRules GetEnabled(IEnumerable<string> ruleIds)
         {
             Dictionary<string, DiagnosticDescriptor> result = null;
             foreach (var ruleId in ruleIds) {
@@ -71,7 +68,7 @@ namespace ClrHeapAllocationAnalyzer.Common {
                 }
             }
 
-            return result ?? Empty;
+            return result != null ? new EnabledRules(result) : EnabledRules.None;
         }
 
         public static bool IsEnabled(string ruleId) {
