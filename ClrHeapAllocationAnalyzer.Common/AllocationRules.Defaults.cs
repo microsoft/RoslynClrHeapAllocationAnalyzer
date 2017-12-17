@@ -50,6 +50,16 @@ namespace ClrHeapAllocationAnalyzer.Common {
         public static readonly AllocationRuleDescription LetCauseRule =
             new AllocationRuleDescription("HAA0506", "Let clause induced allocation", "Let clause induced allocation", DiagnosticSeverity.Info);
 
+        /// Used by TypeConversionAllocationAnalyzer
+        public static readonly AllocationRuleDescription ValueTypeToReferenceTypeConversionRule =
+            new AllocationRuleDescription("HAA0601", "Value type to reference type conversion causing boxing allocation", "Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable", DiagnosticSeverity.Warning);
+
+        public static readonly AllocationRuleDescription DelegateOnStructInstanceRule =
+            new AllocationRuleDescription("HAA0602", "Delegate on struct instance caused a boxing allocation", "Struct instance method being used for delegate creation, this will result in a boxing instruction", DiagnosticSeverity.Warning);
+
+        public static readonly AllocationRuleDescription MethodGroupAllocationRule =
+            new AllocationRuleDescription("HAA0603", "Delegate allocation from a method group", "This will allocate a delegate instance", DiagnosticSeverity.Warning);
+
         public static IEnumerable<AllocationRuleDescription> DefaultValues() {
             yield return ParamsParameterRule;
             yield return ValueTypeNonOverridenCallRule;
@@ -65,6 +75,9 @@ namespace ClrHeapAllocationAnalyzer.Common {
             yield return ImplicitArrayCreationRule;
             yield return InitializerCreationRule;
             yield return LetCauseRule;
+            yield return ValueTypeToReferenceTypeConversionRule;
+            yield return DelegateOnStructInstanceRule;
+            yield return MethodGroupAllocationRule;
         }
     }
 }

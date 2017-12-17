@@ -57,7 +57,7 @@ namespace ClrHeapAllocationAnalyzer.Test
                 SyntaxKind.Argument));
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (2,35): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
-            AssertEx.ContainsDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 2, character: 35);
+            AssertEx.ContainsDiagnostic(info.Allocations, AllocationRules.ValueTypeToReferenceTypeConversionRule.Id, line: 2, character: 35);
         }
 
         [TestMethod]
@@ -110,9 +110,9 @@ namespace ClrHeapAllocationAnalyzer.Test
                 SyntaxKind.Argument));
             Assert.AreEqual(2, info.Allocations.Count);
             // Diagnostic: (3,30): warning HeapAnalyzerMethodGroupAllocationRule: This will allocate a delegate instance
-            AssertEx.ContainsDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.MethodGroupAllocationRule.Id, line: 3, character: 30);
+            AssertEx.ContainsDiagnostic(info.Allocations, AllocationRules.MethodGroupAllocationRule.Id, line: 3, character: 30);
             // Diagnostic: (3,30): warning HeapAnalyzerDelegateOnStructRule: Struct instance method being used for delegate creation, this will result in a boxing instruction
-            AssertEx.ContainsDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, line: 3, character: 30);
+            AssertEx.ContainsDiagnostic(info.Allocations, AllocationRules.DelegateOnStructInstanceRule.Id, line: 3, character: 30);
         }
 
         [TestMethod]

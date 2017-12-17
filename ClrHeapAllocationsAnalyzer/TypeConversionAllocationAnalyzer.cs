@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.Threading;
+using ClrHeapAllocationAnalyzer.Common;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,37 +10,32 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class TypeConversionAllocationAnalyzer : DiagnosticAnalyzer
-    {
-        public static DiagnosticDescriptor ValueTypeToReferenceTypeConversionRule = new DiagnosticDescriptor("HAA0601", "Value type to reference type conversion causing boxing allocation", "Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable", "Performance", DiagnosticSeverity.Warning, true);
+    public sealed class TypeConversionAllocationAnalyzer : AllocationAnalyzer {
+        protected override string[] Rules => new[] {AllocationRules.ValueTypeToReferenceTypeConversionRule.Id, AllocationRules.DelegateOnStructInstanceRule.Id, AllocationRules.MethodGroupAllocationRule.Id };
 
-        public static DiagnosticDescriptor DelegateOnStructInstanceRule = new DiagnosticDescriptor("HAA0602", "Delegate on struct instance caused a boxing allocation", "Struct instance method being used for delegate creation, this will result in a boxing instruction", "Performance", DiagnosticSeverity.Warning, true);
+        protected override SyntaxKind[] Expressions => new[] {
+            SyntaxKind.SimpleAssignmentExpression,
+            SyntaxKind.ReturnStatement,
+            SyntaxKind.YieldReturnStatement,
+            SyntaxKind.CastExpression,
+            SyntaxKind.AsExpression,
+            SyntaxKind.CoalesceExpression,
+            SyntaxKind.ConditionalExpression,
+            SyntaxKind.ForEachStatement,
+            SyntaxKind.EqualsValueClause,
+            SyntaxKind.Argument
+        };
 
-        public static DiagnosticDescriptor MethodGroupAllocationRule = new DiagnosticDescriptor("HAA0603", "Delegate allocation from a method group", "This will allocate a delegate instance", "Performance", DiagnosticSeverity.Warning, true);
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+            ImmutableArray.Create(
+                AllocationRules.GetDescriptor(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id),
+                AllocationRules.GetDescriptor(AllocationRules.DelegateOnStructInstanceRule.Id),
+                AllocationRules.GetDescriptor(AllocationRules.MethodGroupAllocationRule.Id)
+            );
 
-        internal static object[] EmptyMessageArgs = { };
+        private static readonly object[] EmptyMessageArgs = { };
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ValueTypeToReferenceTypeConversionRule, DelegateOnStructInstanceRule, MethodGroupAllocationRule);
-
-        public override void Initialize(AnalysisContext context)
-        {
-            var kinds = new[]
-            {
-                SyntaxKind.SimpleAssignmentExpression,
-                SyntaxKind.ReturnStatement,
-                SyntaxKind.YieldReturnStatement,
-                SyntaxKind.CastExpression,
-                SyntaxKind.AsExpression,
-                SyntaxKind.CoalesceExpression,
-                SyntaxKind.ConditionalExpression,
-                SyntaxKind.ForEachStatement,
-                SyntaxKind.EqualsValueClause,
-                SyntaxKind.Argument
-            };
-            context.RegisterSyntaxNodeAction(AnalyzeNode, kinds);
-        }
-
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, EnabledRules rules)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
@@ -47,117 +43,130 @@ namespace ClrHeapAllocationAnalyzer
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
             string filePath = node.SyntaxTree.FilePath;
 
+            bool isValueTypeToReferenceRuleEnabled = rules.TryGet(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id,
+                out DiagnosticDescriptor valueTypeToReferenceRule);
+
             // this.fooObjCall(10);
             // new myobject(10);
             if (node is ArgumentSyntax)
             {
-                ArgumentSyntaxCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                ArgumentSyntaxCheck(rules, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
             }
 
             // object foo { get { return 0; } }
-            if (node is ReturnStatementSyntax)
+            if (isValueTypeToReferenceRuleEnabled && node is ReturnStatementSyntax)
             {
-                ReturnStatementExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                ReturnStatementExpressionCheck(valueTypeToReferenceRule, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // yield return 0
-            if (node is YieldStatementSyntax)
+            if (isValueTypeToReferenceRuleEnabled && node is YieldStatementSyntax)
             {
-                YieldReturnStatementExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                YieldReturnStatementExpressionCheck(valueTypeToReferenceRule, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // object a = x ?? 0;
             // var a = 10 as object;
-            if (node is BinaryExpressionSyntax)
+            if (isValueTypeToReferenceRuleEnabled && node is BinaryExpressionSyntax)
             {
-                BinaryExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                BinaryExpressionCheck(rules, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // for (object i = 0;;)
             if (node is EqualsValueClauseSyntax)
             {
-                EqualsValueClauseCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                EqualsValueClauseCheck(rules, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // object = true ? 0 : obj
-            if (node is ConditionalExpressionSyntax)
+            if (isValueTypeToReferenceRuleEnabled && node is ConditionalExpressionSyntax)
             {
-                ConditionalExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                ConditionalExpressionCheck(valueTypeToReferenceRule, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // var f = (object)
-            if (node is CastExpressionSyntax)
+            if (isValueTypeToReferenceRuleEnabled && node is CastExpressionSyntax)
             {
-                CastExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                CastExpressionCheck(valueTypeToReferenceRule, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
         }
 
-        private static void ReturnStatementExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void ReturnStatementExpressionCheck(DiagnosticDescriptor typeConversionRule, SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var returnStatementExpression = node as ReturnStatementSyntax;
             if (returnStatementExpression.Expression != null)
             {
                 var returnTypeInfo = semanticModel.GetTypeInfo(returnStatementExpression.Expression, cancellationToken);
-                CheckTypeConversion(returnTypeInfo, reportDiagnostic, returnStatementExpression.Expression.GetLocation(), filePath);
+                CheckTypeConversion(typeConversionRule, returnTypeInfo, reportDiagnostic, returnStatementExpression.Expression.GetLocation(), filePath);
             }
         }
 
-        private static void YieldReturnStatementExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void YieldReturnStatementExpressionCheck(DiagnosticDescriptor typeConversionRule, SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var yieldExpression = node as YieldStatementSyntax;
             if (yieldExpression.Expression != null)
             {
                 var returnTypeInfo = semanticModel.GetTypeInfo(yieldExpression.Expression, cancellationToken);
-                CheckTypeConversion(returnTypeInfo, reportDiagnostic, yieldExpression.Expression.GetLocation(), filePath);
+                CheckTypeConversion(typeConversionRule, returnTypeInfo, reportDiagnostic, yieldExpression.Expression.GetLocation(), filePath);
             }
         }
 
-        private static void ArgumentSyntaxCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void ArgumentSyntaxCheck(EnabledRules rules, SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var argument = node as ArgumentSyntax;
             if (argument.Expression != null)
             {
                 var argumentTypeInfo = semanticModel.GetTypeInfo(argument.Expression, cancellationToken);
-                CheckTypeConversion(argumentTypeInfo, reportDiagnostic, argument.Expression.GetLocation(), filePath);
-                CheckDelegateCreation(argument.Expression, argumentTypeInfo, semanticModel, reportDiagnostic, argument.Expression.GetLocation(), filePath, cancellationToken);
+                if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
+                {
+                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), argumentTypeInfo, reportDiagnostic, argument.Expression.GetLocation(), filePath);
+                }
+
+                CheckDelegateCreation(rules, argument.Expression, argumentTypeInfo, semanticModel, reportDiagnostic, argument.Expression.GetLocation(), filePath, cancellationToken);
             }
         }
 
-        private static void BinaryExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void BinaryExpressionCheck(EnabledRules rules, SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var binaryExpression = node as BinaryExpressionSyntax;
-
-            // as expression
-            if (binaryExpression.IsKind(SyntaxKind.AsExpression) && binaryExpression.Left != null && binaryExpression.Right != null)
+            if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
             {
-                var leftT = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
-                var rightT = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
-
-                if (leftT.Type?.IsValueType == true && rightT.Type?.IsReferenceType == true)
+                // as expression
+                if (binaryExpression.IsKind(SyntaxKind.AsExpression) && binaryExpression.Left != null &&
+                    binaryExpression.Right != null)
                 {
-                    reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, binaryExpression.Left.GetLocation(), EmptyMessageArgs));
-                    HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
-                }
+                    var leftT = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
+                    var rightT = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
 
-                return;
+                    if (leftT.Type?.IsValueType == true && rightT.Type?.IsReferenceType == true)
+                    {
+                        reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), binaryExpression.Left.GetLocation(), EmptyMessageArgs));
+                        HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
+                    }
+
+                    return;
+                }
             }
 
             if (binaryExpression.Right != null)
             {
                 var assignmentExprTypeInfo = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
-                CheckTypeConversion(assignmentExprTypeInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
-                CheckDelegateCreation(binaryExpression.Right, assignmentExprTypeInfo, semanticModel, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
+                if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
+                {
+                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), assignmentExprTypeInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
+                }
+                CheckDelegateCreation(rules, binaryExpression.Right, assignmentExprTypeInfo, semanticModel, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
                 return;
             }
         }
 
-        private static void CastExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void CastExpressionCheck(DiagnosticDescriptor rule, SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var castExpression = node as CastExpressionSyntax;
             if (castExpression.Expression != null)
@@ -167,12 +176,12 @@ namespace ClrHeapAllocationAnalyzer
 
                 if (castTypeInfo.Type?.IsReferenceType == true && expressionTypeInfo.Type?.IsValueType == true)
                 {
-                    reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, castExpression.Expression.GetLocation(), EmptyMessageArgs));
+                    reportDiagnostic(Diagnostic.Create(rule, castExpression.Expression.GetLocation(), EmptyMessageArgs));
                 }
             }
         }
 
-        private static void ConditionalExpressionCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void ConditionalExpressionCheck(DiagnosticDescriptor rule, SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var conditionalExpression = node as ConditionalExpressionSyntax;
 
@@ -181,36 +190,38 @@ namespace ClrHeapAllocationAnalyzer
 
             if (trueExp != null)
             {
-                CheckTypeConversion(semanticModel.GetTypeInfo(trueExp, cancellationToken), reportDiagnostic, trueExp.GetLocation(), filePath);
+                CheckTypeConversion(rule, semanticModel.GetTypeInfo(trueExp, cancellationToken), reportDiagnostic, trueExp.GetLocation(), filePath);
             }
 
             if (falseExp != null)
             {
-                CheckTypeConversion(semanticModel.GetTypeInfo(falseExp, cancellationToken), reportDiagnostic, falseExp.GetLocation(), filePath);
+                CheckTypeConversion(rule, semanticModel.GetTypeInfo(falseExp, cancellationToken), reportDiagnostic, falseExp.GetLocation(), filePath);
             }
         }
 
-        private static void EqualsValueClauseCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void EqualsValueClauseCheck(EnabledRules rules, SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var initializer = node as EqualsValueClauseSyntax;
             if (initializer.Value != null)
             {
                 var typeInfo = semanticModel.GetTypeInfo(initializer.Value, cancellationToken);
-                CheckTypeConversion(typeInfo, reportDiagnostic, initializer.Value.GetLocation(), filePath);
-                CheckDelegateCreation(initializer.Value, typeInfo, semanticModel, reportDiagnostic, initializer.Value.GetLocation(), filePath, cancellationToken);
+                if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
+                {
+                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), typeInfo, reportDiagnostic, initializer.Value.GetLocation(), filePath);
+                }
+                CheckDelegateCreation(rules, initializer.Value, typeInfo, semanticModel, reportDiagnostic, initializer.Value.GetLocation(), filePath, cancellationToken);
             }
         }
-
-        private static void CheckTypeConversion(TypeInfo typeInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
-        {
+        
+        private static void CheckTypeConversion(DiagnosticDescriptor rule, TypeInfo typeInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath) {
             if (typeInfo.Type?.IsValueType == true && typeInfo.ConvertedType?.IsValueType != true)
             {
-                reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, location, EmptyMessageArgs));
+                reportDiagnostic(Diagnostic.Create(rule, location, EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
             }
         }
 
-        private static void CheckDelegateCreation(SyntaxNode node, TypeInfo typeInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, Location location, string filePath, CancellationToken cancellationToken)
+        private static void CheckDelegateCreation(EnabledRules rules, SyntaxNode node, TypeInfo typeInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, Location location, string filePath, CancellationToken cancellationToken)
         {
             // special case: method groups
             if (typeInfo.ConvertedType?.TypeKind == TypeKind.Delegate)
@@ -225,31 +236,34 @@ namespace ClrHeapAllocationAnalyzer
                 }
                 else
                 {
-                    if (node.IsKind(SyntaxKind.IdentifierName))
+                    if (rules.IsEnabled(AllocationRules.MethodGroupAllocationRule.Id) && node.IsKind(SyntaxKind.IdentifierName))
                     {
                         var symbol = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol as IMethodSymbol;
                         if (symbol != null)
                         {
-                            reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
+                            reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.MethodGroupAllocationRule.Id), location, EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                         }
                     }
-                    else if (node.IsKind(SyntaxKind.SimpleMemberAccessExpression))
+                    else if (rules.IsEnabled(AllocationRules.MethodGroupAllocationRule.Id) && node.IsKind(SyntaxKind.SimpleMemberAccessExpression))
                     {
                         var memberAccess = node as MemberAccessExpressionSyntax;
                         var symbol = semanticModel.GetSymbolInfo(memberAccess.Name, cancellationToken).Symbol as IMethodSymbol;
                         if (symbol != null)
                         {
-                            reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
+                            reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.MethodGroupAllocationRule.Id), location, EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                         }
                     }
                 }
 
-                var symbolInfo = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
-                if (symbolInfo?.ContainingType?.IsValueType == true && !insideObjectCreation)
+                if (rules.IsEnabled(AllocationRules.DelegateOnStructInstanceRule.Id))
                 {
-                    reportDiagnostic(Diagnostic.Create(DelegateOnStructInstanceRule, location, EmptyMessageArgs));
+                    var symbolInfo = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
+                    if (symbolInfo?.ContainingType?.IsValueType == true && !insideObjectCreation)
+                    {
+                        reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.DelegateOnStructInstanceRule.Id), location, EmptyMessageArgs));
+                    }
                 }
             }
         }
