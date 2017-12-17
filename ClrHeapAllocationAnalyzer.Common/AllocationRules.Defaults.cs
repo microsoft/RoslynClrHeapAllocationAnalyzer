@@ -27,6 +27,10 @@ namespace ClrHeapAllocationAnalyzer.Common {
         public static readonly AllocationRuleDescription LambaOrAnonymousMethodInGenericMethodRule =
             new AllocationRuleDescription("HAA0303", "Lambda or anonymous method in a generic method allocates a delegate instance", "Considering moving this out of the generic method", DiagnosticSeverity.Warning);
 
+        // Used by EnumeratorAllocationAnalyzer
+        public static readonly AllocationRuleDescription ReferenceTypeEnumeratorRule =
+            new AllocationRuleDescription("HAA0401", "Possible allocation of reference type enumerator", "Non-ValueType enumerator may result in an heap allocation", DiagnosticSeverity.Warning);
+
 
         public static IEnumerable<AllocationRuleDescription> DefaultValues() {
             yield return ParamsParameterRule;
@@ -36,6 +40,7 @@ namespace ClrHeapAllocationAnalyzer.Common {
             yield return ClosureDriverRule;
             yield return ClosureCaptureRule;
             yield return LambaOrAnonymousMethodInGenericMethodRule;
+            yield return ReferenceTypeEnumeratorRule;
         }
     }
 }

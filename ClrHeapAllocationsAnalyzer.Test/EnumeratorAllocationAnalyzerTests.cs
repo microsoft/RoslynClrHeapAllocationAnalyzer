@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using ClrHeapAllocationAnalyzer.Common;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -44,9 +45,9 @@ foreach (var i in (IEnumerable<int>)intData) // Allocations (line 24)
 
             Assert.AreEqual(2, info.Allocations.Count);
             // Diagnostic: (19,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in an heap allocation
-            AssertEx.ContainsDiagnostic(info.Allocations, id: EnumeratorAllocationAnalyzer.ReferenceTypeEnumeratorRule.Id, line: 19, character: 16);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ReferenceTypeEnumeratorRule.Id, line: 19, character: 16);
             // Diagnostic: (24,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in an heap allocation
-            AssertEx.ContainsDiagnostic(info.Allocations, id: EnumeratorAllocationAnalyzer.ReferenceTypeEnumeratorRule.Id, line: 24, character: 16);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ReferenceTypeEnumeratorRule.Id, line: 24, character: 16);
         }
 
         [TestMethod]
@@ -77,7 +78,7 @@ foreach (var f in fx2) // NO Allocations
 
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (11,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in an heap allocation
-            AssertEx.ContainsDiagnostic(info.Allocations, id: EnumeratorAllocationAnalyzer.ReferenceTypeEnumeratorRule.Id, line: 11, character: 16);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ReferenceTypeEnumeratorRule.Id, line: 11, character: 16);
         }
 
         [TestMethod]
@@ -117,7 +118,7 @@ private IEnumerator<int> GetIEnumeratorViaIEnumerable()
 
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (11,35): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in an heap allocation ***
-            AssertEx.ContainsDiagnostic(info.Allocations, id: EnumeratorAllocationAnalyzer.ReferenceTypeEnumeratorRule.Id, line: 11, character: 35);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ReferenceTypeEnumeratorRule.Id, line: 11, character: 35);
         }
     }
 }

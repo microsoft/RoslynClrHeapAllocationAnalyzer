@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Immutable;
 using System.Linq;
+using ClrHeapAllocationAnalyzer.Common;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,20 +10,18 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class EnumeratorAllocationAnalyzer : DiagnosticAnalyzer
+    public sealed class EnumeratorAllocationAnalyzer : AllocationAnalyzer
     {
-        public static DiagnosticDescriptor ReferenceTypeEnumeratorRule = new DiagnosticDescriptor("HAA0401", "Possible allocation of reference type enumerator", "Non-ValueType enumerator may result in an heap allocation", "Performance", DiagnosticSeverity.Warning, true);
+        protected override string[] Rules => new[] {AllocationRules.ReferenceTypeEnumeratorRule.Id };
 
-        internal static object[] EmptyMessageArgs = { };
+        protected override SyntaxKind[] Expressions => new[] { SyntaxKind.ForEachStatement, SyntaxKind.InvocationExpression };
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ReferenceTypeEnumeratorRule);
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+            ImmutableArray.Create(AllocationRules.GetDescriptor(AllocationRules.ReferenceTypeEnumeratorRule.Id));
 
-        public override void Initialize(AnalysisContext context)
-        {
-            context.RegisterSyntaxNodeAction(AnalyzeNode, SyntaxKind.ForEachStatement, SyntaxKind.InvocationExpression);
-        }
+        private static readonly object[] EmptyMessageArgs = { };
 
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, EnabledRules rules)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
@@ -61,7 +60,7 @@ namespace ClrHeapAllocationAnalyzer
                     {
                         if (methodSymbol.ReturnType.IsReferenceType && methodSymbol.ReturnType.SpecialType != SpecialType.System_Collections_IEnumerator)
                         {
-                            reportDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, foreachExpression.InKeyword.GetLocation(), EmptyMessageArgs));
+                            reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.ReferenceTypeEnumeratorRule.Id), foreachExpression.InKeyword.GetLocation(), EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
                         }
                     }
@@ -82,7 +81,7 @@ namespace ClrHeapAllocationAnalyzer
 			            {
 				            if (@interface.SpecialType == SpecialType.System_Collections_Generic_IEnumerator_T || @interface.SpecialType == SpecialType.System_Collections_IEnumerator)
 				            {
-					            reportDiagnostic(Diagnostic.Create(ReferenceTypeEnumeratorRule, invocationExpression.GetLocation(), EmptyMessageArgs));
+					            reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.ReferenceTypeEnumeratorRule.Id), invocationExpression.GetLocation(), EmptyMessageArgs));
 					            HeapAllocationAnalyzerEventSource.Logger.EnumeratorAllocation(filePath);
 				            }
 			            }
