@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using ClrHeapAllocationAnalyzer.Common;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -11,6 +12,12 @@ namespace ClrHeapAllocationAnalyzer.Test
 {
     public abstract class AllocationAnalyzerTests
     {
+        [TestInitialize]
+        public void Initialize()
+        {
+            AllocationRules.Settings = new HeapAllocationAnalyzerSettings(new InMemorySettingsStore());
+        }
+
         protected static readonly List<MetadataReference> references = new List<MetadataReference>
             {
                 MetadataReference.CreateFromFile(typeof(int).Assembly.Location),

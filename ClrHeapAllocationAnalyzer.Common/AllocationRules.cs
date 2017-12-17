@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 
 namespace ClrHeapAllocationAnalyzer.Common {
-    public static class AllocationRules
+    public static partial class AllocationRules
     {
         private static IHeapAllocationAnalyzerSettings settings;
 
@@ -12,6 +12,14 @@ namespace ClrHeapAllocationAnalyzer.Common {
 
         private static readonly Dictionary<string, AllocationRuleDescription> Descriptions =
             new Dictionary<string, AllocationRuleDescription>();
+
+        static AllocationRules()
+        {
+            foreach (AllocationRuleDescription rule in DefaultValues())
+            {
+                Descriptions.Add(rule.Id, rule);
+            }
+        }
 
         public static IHeapAllocationAnalyzerSettings Settings
         {
@@ -31,18 +39,7 @@ namespace ClrHeapAllocationAnalyzer.Common {
                 }
             }
         }
-
-        public static void RegisterAnalyzerRule(AllocationRuleDescription defaultDescription)
-        {
-            if (Descriptions.ContainsKey(defaultDescription.Id))
-            {
-                throw new ArgumentException($"Already have a rule with id '{defaultDescription.Id}'", nameof(defaultDescription));
-            }
-
-            DiagnosticSeverity severity = Settings.GetSeverity(defaultDescription.Id, defaultDescription.Severity);
-            Descriptions.Add(defaultDescription.Id, defaultDescription.WithSeverity(severity));
-        }
-
+        
         public static DiagnosticDescriptor GetDescriptor(string ruleId)
         {
             if (!Descriptions.ContainsKey(ruleId))
@@ -51,7 +48,8 @@ namespace ClrHeapAllocationAnalyzer.Common {
             }
 
             AllocationRuleDescription d = Descriptions[ruleId];
-            return new DiagnosticDescriptor(d.Id, d.Title, d.MessageFormat, "Performance", d.Severity, true, helpLinkUri: d.HelpLinkUri);
+            bool isEnabled = d.Severity != DiagnosticSeverity.Hidden;
+            return new DiagnosticDescriptor(d.Id, d.Title, d.MessageFormat, "Performance", d.Severity, isEnabled, helpLinkUri: d.HelpLinkUri);
         }
 
         public static IEnumerable<AllocationRuleDescription> GetDescriptions()

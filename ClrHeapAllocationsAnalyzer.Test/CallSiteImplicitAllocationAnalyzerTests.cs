@@ -10,14 +10,6 @@ namespace ClrHeapAllocationAnalyzer.Test
     [TestClass]
     public class CallSiteImplicitAllocationAnalyzerTests : AllocationAnalyzerTests
     {
-        [ClassInitialize]
-        public static void ClassInit(TestContext context)
-        {
-            AllocationRules.Settings = new HeapAllocationAnalyzerSettings(new InMemorySettingsStore());
-            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ParamsParameterRule);
-            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule);
-        }
-
         [TestMethod]
         public void CallSiteImplicitAllocation_Param()
         {
@@ -45,13 +37,13 @@ public void ParamsWithObjects(params object[] args)
 
             Assert.AreEqual(4, info.Allocations.Count);
             // Diagnostic: (3,1): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter
-            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 3, character: 1);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ParamsParameterRule.Id, line: 3, character: 1);
             // Diagnostic: (4,1): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter
-            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 4, character: 1);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ParamsParameterRule.Id, line: 4, character: 1);
             // Diagnostic: (6,1): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter
-            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 6, character: 1);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ParamsParameterRule.Id, line: 6, character: 1);
             // Diagnostic: (9,12): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter
-            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 9, character: 12);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ParamsParameterRule.Id, line: 9, character: 12);
         }
 
         [TestMethod]
@@ -82,7 +74,7 @@ struct OverrideToHashCode
 
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (3,14): warning HeapAnalyzerValueTypeNonOverridenCallRule: Non-overriden virtual method call on a value type adds a boxing or constrained instruction
-            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule.Id, line: 3, character: 14);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ValueTypeNonOverridenCallRule.Id, line: 3, character: 14);
         }
 
         [TestMethod]
@@ -92,8 +84,6 @@ struct OverrideToHashCode
             var settings = new HeapAllocationAnalyzerSettings(store);
 
             AllocationRules.Settings = settings;
-            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ParamsParameterRule);
-            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule);
 
             var sampleProgram =
                 @"using System;
@@ -107,15 +97,15 @@ struct OverrideToHashCode
             var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
             Assert.AreEqual(2, info.Allocations.Count);
 
-            settings.SetSeverity(CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, DiagnosticSeverity.Hidden);
+            settings.SetSeverity(AllocationRules.ParamsParameterRule.Id, DiagnosticSeverity.Hidden);
 
             info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
-            Assert.AreEqual(0, info.Allocations.Count(x => x.Id == CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id));
+            Assert.AreEqual(0, info.Allocations.Count(x => x.Id == AllocationRules.ParamsParameterRule.Id));
 
-            settings.SetSeverity(CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule.Id, DiagnosticSeverity.Hidden);
+            settings.SetSeverity(AllocationRules.ValueTypeNonOverridenCallRule.Id, DiagnosticSeverity.Hidden);
 
             info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
-            Assert.AreEqual(0, info.Allocations.Count(x => x.Id == CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule.Id));
+            Assert.AreEqual(0, info.Allocations.Count(x => x.Id == AllocationRules.ValueTypeNonOverridenCallRule.Id));
         }
     }
 }

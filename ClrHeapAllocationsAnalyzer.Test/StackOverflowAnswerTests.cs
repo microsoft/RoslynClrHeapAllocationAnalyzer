@@ -11,13 +11,6 @@ namespace ClrHeapAllocationAnalyzer.Test
     [TestClass]
     public class StackOverflowAnswerTests : AllocationAnalyzerTests
     {
-        [ClassInitialize]
-        public static void ClassInit(TestContext context) {
-            AllocationRules.Settings = new HeapAllocationAnalyzerSettings(new InMemorySettingsStore());
-            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ParamsParameterRule);
-            AllocationRules.Settings.GetSeverity(CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule);
-        }
-
         [TestMethod]
         public void Converting_any_value_type_to_System_Object_type()
         {
@@ -91,9 +84,9 @@ namespace ClrHeapAllocationAnalyzer.Test
             var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
             Assert.AreEqual(2, info.Allocations.Count);
             //Diagnostic: (2,53): warning HeapAnalyzerBoxingRule: Value type (char) is being boxed to a reference type for a string concatenation.
-            AssertEx.ContainsDiagnostic(info.Allocations, ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule.Id, line: 2, character: 53);
+            AssertEx.ContainsDiagnostic(info.Allocations, AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id, line: 2, character: 53);
             //Diagnostic: (2,51): warning HeapAnalyzerStringConcatRule: Considering using StringBuilder
-            AssertEx.ContainsDiagnostic(info.Allocations, ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id, line: 2, character: 51);
+            AssertEx.ContainsDiagnostic(info.Allocations, AllocationRules.StringConcatenationAllocationRule.Id, line: 2, character: 51);
         }
 
         [TestMethod]
@@ -132,7 +125,7 @@ namespace ClrHeapAllocationAnalyzer.Test
             var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.InvocationExpression));
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (2,17): warning HeapAnalyzerValueTypeNonOverridenCallRule: Non-overriden virtual method call on a value type adds a boxing or constrained instruction
-            AssertEx.ContainsDiagnostic(info.Allocations, CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule.Id, line: 2, character: 17);
+            AssertEx.ContainsDiagnostic(info.Allocations, AllocationRules.ValueTypeNonOverridenCallRule.Id, line: 2, character: 17);
         }
     }
 }

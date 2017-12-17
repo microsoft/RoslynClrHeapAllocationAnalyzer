@@ -175,6 +175,7 @@
     <Compile Include="AllocationRules.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AllocationRules.Defaults.cs" />
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>

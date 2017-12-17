@@ -17,7 +17,6 @@ namespace ClrHeapAllocationAnalyzer.Common {
 
         public event EventHandler SettingsChanged;
 
-     
         public bool Enabled
         {
             get => enabled;
@@ -39,7 +38,6 @@ namespace ClrHeapAllocationAnalyzer.Common {
             else
             {
                 ruleSeverities.Add(ruleId, defaultSeverity);
-                //OnSettingsChanged(); Is this needed? Do we need to save the defaults in the store?
                 return defaultSeverity;
             }
         }
@@ -89,7 +87,8 @@ namespace ClrHeapAllocationAnalyzer.Common {
             {
                 Enabled = settingsStore.GetBoolean(CollectionPath, "Enabled", true);
 
-                foreach (var rule in ruleSeverities) {
+                foreach (var rule in ruleSeverities)
+                {
                     int severity = settingsStore.GetInt32(CollectionPath, rule.Key, (int)rule.Value);
                     ruleSeverities[rule.Key] = (DiagnosticSeverity)severity;
                 }

@@ -15,27 +15,15 @@ namespace ClrHeapAllocationAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class CallSiteImplicitAllocationAnalyzer : DiagnosticAnalyzer
     {
-        public static readonly AllocationRuleDescription ParamsParameterRule =
-            new AllocationRuleDescription("HAA0101", "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", DiagnosticSeverity.Warning);
-
-        public static readonly AllocationRuleDescription ValueTypeNonOverridenCallRule =
-            new AllocationRuleDescription("HAA0102", "Non-overridden virtual method call on value type", "Non-overridden virtual method call on a value type adds a boxing or constrained instruction", DiagnosticSeverity.Warning);
-
-        private static readonly string[] AllRules = { ParamsParameterRule.Id, ValueTypeNonOverridenCallRule.Id };
+        private static readonly string[] AllRules = {AllocationRules.ParamsParameterRule.Id, AllocationRules.ValueTypeNonOverridenCallRule.Id };
 
         private static readonly object[] EmptyMessageArgs = { };
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => 
             ImmutableArray.Create(
-                AllocationRules.GetDescriptor(ParamsParameterRule.Id),
-                AllocationRules.GetDescriptor(ValueTypeNonOverridenCallRule.Id)
+                AllocationRules.GetDescriptor(AllocationRules.ParamsParameterRule.Id),
+                AllocationRules.GetDescriptor(AllocationRules.ValueTypeNonOverridenCallRule.Id)
             );
-
-        public CallSiteImplicitAllocationAnalyzer()
-        {
-            AllocationRules.RegisterAnalyzerRule(ParamsParameterRule);
-            AllocationRules.RegisterAnalyzerRule(ValueTypeNonOverridenCallRule);
-        }
 
         public override void Initialize(AnalysisContext context) {
             context.RegisterSyntaxNodeAction(AnalyzeNode, SyntaxKind.InvocationExpression);
@@ -62,18 +50,18 @@ namespace ClrHeapAllocationAnalyzer
 
             if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is IMethodSymbol methodInfo)
             {
-                if (enabledRules.ContainsKey(ValueTypeNonOverridenCallRule.Id))
+                if (enabledRules.ContainsKey(AllocationRules.ValueTypeNonOverridenCallRule.Id))
                 {
-                    CheckNonOverridenMethodOnStruct(enabledRules[ValueTypeNonOverridenCallRule.Id], methodInfo, reportDiagnostic, invocationExpression, filePath);
+                    CheckNonOverridenMethodOnStruct(enabledRules[AllocationRules.ValueTypeNonOverridenCallRule.Id], methodInfo, reportDiagnostic, invocationExpression, filePath);
                 }
 
-                if (enabledRules.ContainsKey(ParamsParameterRule.Id))
+                if (enabledRules.ContainsKey(AllocationRules.ParamsParameterRule.Id))
                 {
                     if (methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
                     {
                         var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
                         if (lastParam.IsParams) {
-                            CheckParam(enabledRules[ParamsParameterRule.Id], invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                            CheckParam(enabledRules[AllocationRules.ParamsParameterRule.Id], invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
                         }
                     }
                 }  
