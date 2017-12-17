@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using ClrHeapAllocationAnalyzer.Common;
@@ -12,7 +11,7 @@ namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class ConcatenationAllocationAnalyzer : AllocationAnalyzer {
-        protected override string[] Rules => new[] { AllocationRules.StringConcatenationAllocationRule.Id, AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id };
+        protected override string[] Rules => new [] { AllocationRules.StringConcatenationAllocationRule.Id, AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id };
 
         protected override SyntaxKind[] Expressions => new[] { SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression };
 

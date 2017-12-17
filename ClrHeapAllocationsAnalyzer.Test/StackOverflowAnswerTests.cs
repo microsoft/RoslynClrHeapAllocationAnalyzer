@@ -21,7 +21,7 @@ namespace ClrHeapAllocationAnalyzer.Test
             var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.ObjectCreationExpression, SyntaxKind.AnonymousObjectCreationExpression, SyntaxKind.ArrayInitializerExpression, SyntaxKind.CollectionInitializerExpression, SyntaxKind.ComplexElementInitializerExpression, SyntaxKind.ObjectInitializerExpression, SyntaxKind.ArrayCreationExpression, SyntaxKind.ImplicitArrayCreationExpression, SyntaxKind.LetClause));
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (2,34): info HeapAnalyzerExplicitNewObjectRule: Explicit new reference type allocation
-            AssertEx.ContainsDiagnostic(info.Allocations, ExplicitAllocationAnalyzer.NewObjectRule.Id, line: 2, character: 34);
+            AssertEx.ContainsDiagnostic(info.Allocations, AllocationRules.NewObjectRule.Id, line: 2, character: 34);
         }
 
         [TestMethod]
@@ -34,7 +34,7 @@ namespace ClrHeapAllocationAnalyzer.Test
             var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.ObjectCreationExpression, SyntaxKind.AnonymousObjectCreationExpression, SyntaxKind.ArrayInitializerExpression, SyntaxKind.CollectionInitializerExpression, SyntaxKind.ComplexElementInitializerExpression, SyntaxKind.ObjectInitializerExpression, SyntaxKind.ArrayCreationExpression, SyntaxKind.ImplicitArrayCreationExpression, SyntaxKind.LetClause));
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (2,44): info HeapAnalyzerExplicitNewObjectRule: Explicit new reference type allocation
-            AssertEx.ContainsDiagnostic(info.Allocations, ExplicitAllocationAnalyzer.NewObjectRule.Id, line: 2, character: 44);
+            AssertEx.ContainsDiagnostic(info.Allocations, AllocationRules.NewObjectRule.Id, line: 2, character: 44);
         }
 
         [TestMethod]
@@ -71,7 +71,7 @@ namespace ClrHeapAllocationAnalyzer.Test
             var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.ObjectCreationExpression, SyntaxKind.AnonymousObjectCreationExpression, SyntaxKind.ArrayInitializerExpression, SyntaxKind.CollectionInitializerExpression, SyntaxKind.ComplexElementInitializerExpression, SyntaxKind.ObjectInitializerExpression, SyntaxKind.ArrayCreationExpression, SyntaxKind.ImplicitArrayCreationExpression, SyntaxKind.LetClause));
             Assert.AreEqual(1, info.Allocations.Count);
             // Diagnostic: (3,25): info HeapAnalyzerExplicitNewObjectRule: Explicit new reference type allocation
-            AssertEx.ContainsDiagnostic(info.Allocations, ExplicitAllocationAnalyzer.NewObjectRule.Id, line: 3, character: 25);
+            AssertEx.ContainsDiagnostic(info.Allocations, AllocationRules.NewObjectRule.Id, line: 3, character: 25);
         }
 
         [TestMethod]

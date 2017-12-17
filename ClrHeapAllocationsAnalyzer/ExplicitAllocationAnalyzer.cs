@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Immutable;
+using ClrHeapAllocationAnalyzer.Common;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,42 +9,38 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class ExplicitAllocationAnalyzer : DiagnosticAnalyzer
+    public sealed class ExplicitAllocationAnalyzer : AllocationAnalyzer
     {
-        public static DiagnosticDescriptor NewArrayRule = new DiagnosticDescriptor("HAA0501", "Explicit new array type allocation", "Explicit new array type allocation", "Performance", DiagnosticSeverity.Info, true);
+        protected override string[] Rules => new string[] {AllocationRules.NewArrayRule.Id, AllocationRules.NewObjectRule.Id, AllocationRules.AnonymousNewObjectRule.Id, AllocationRules.ImplicitArrayCreationRule.Id, AllocationRules.InitializerCreationRule.Id, AllocationRules.LetCauseRule.Id };
 
-        public static DiagnosticDescriptor NewObjectRule = new DiagnosticDescriptor("HAA0502", "Explicit new reference type allocation", "Explicit new reference type allocation", "Performance", DiagnosticSeverity.Info, true);
-
-        public static DiagnosticDescriptor AnonymousNewObjectRule = new DiagnosticDescriptor("HAA0503", "Explicit new anonymous object allocation", "Explicit new anonymous object allocation", "Performance", DiagnosticSeverity.Info, true, string.Empty, "http://msdn.microsoft.com/en-us/library/bb397696.aspx");
-
-        public static DiagnosticDescriptor ImplicitArrayCreationRule = new DiagnosticDescriptor("HAA0504", "Implicit new array creation allocation", "Implicit new array creation allocation", "Performance", DiagnosticSeverity.Info, true);
-
-        public static DiagnosticDescriptor InitializerCreationRule = new DiagnosticDescriptor("HAA0505", "Initializer reference type allocation", "Initializer reference type allocation", "Performance", DiagnosticSeverity.Info, true);
-
-        public static DiagnosticDescriptor LetCauseRule = new DiagnosticDescriptor("HAA0506", "Let clause induced allocation", "Let clause induced allocation", "Performance", DiagnosticSeverity.Info, true);
-
-        internal static object[] EmptyMessageArgs = { };
-
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(LetCauseRule, InitializerCreationRule, ImplicitArrayCreationRule, AnonymousNewObjectRule, NewObjectRule, NewArrayRule);
-
-        public override void Initialize(AnalysisContext context)
+        protected override SyntaxKind[] Expressions => new[]
         {
-            var kinds = new[]
-            {
-                SyntaxKind.ObjectCreationExpression,            // Used
-                SyntaxKind.AnonymousObjectCreationExpression,   // Used
-                SyntaxKind.ArrayInitializerExpression,          // Used (this is inside an ImplicitArrayCreationExpression)
-                SyntaxKind.CollectionInitializerExpression,     // Is this used anywhere?
-                SyntaxKind.ComplexElementInitializerExpression, // Is this used anywhere? For what this is see http://source.roslyn.codeplex.com/#Microsoft.CodeAnalysis.CSharp/Compilation/CSharpSemanticModel.cs,80
-                SyntaxKind.ObjectInitializerExpression,         // Used linked to InitializerExpressionSyntax
-                SyntaxKind.ArrayCreationExpression,             // Used
-                SyntaxKind.ImplicitArrayCreationExpression,     // Used (this then contains an ArrayInitializerExpression)
-                SyntaxKind.LetClause                            // Used
-            };
-            context.RegisterSyntaxNodeAction(AnalyzeNode, kinds);
-        }
+            SyntaxKind.ObjectCreationExpression,            // Used
+            SyntaxKind.AnonymousObjectCreationExpression,   // Used
+            SyntaxKind.ArrayInitializerExpression,          // Used (this is inside an ImplicitArrayCreationExpression)
+            SyntaxKind.CollectionInitializerExpression,     // Is this used anywhere?
+            SyntaxKind.ComplexElementInitializerExpression, // Is this used anywhere? For what this is see http://source.roslyn.codeplex.com/#Microsoft.CodeAnalysis.CSharp/Compilation/CSharpSemanticModel.cs,80
+            SyntaxKind.ObjectInitializerExpression,         // Used linked to InitializerExpressionSyntax
+            SyntaxKind.ArrayCreationExpression,             // Used
+            SyntaxKind.ImplicitArrayCreationExpression,     // Used (this then contains an ArrayInitializerExpression)
+            SyntaxKind.LetClause                            // Used
+        };
 
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
+
+        private static readonly object[] EmptyMessageArgs = { };
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+            ImmutableArray.Create(
+                AllocationRules.GetDescriptor(AllocationRules.LetCauseRule.Id),
+                AllocationRules.GetDescriptor(AllocationRules.InitializerCreationRule.Id),
+                AllocationRules.GetDescriptor(AllocationRules.ImplicitArrayCreationRule.Id),
+                AllocationRules.GetDescriptor(AllocationRules.AnonymousNewObjectRule.Id),
+                AllocationRules.GetDescriptor(AllocationRules.NewObjectRule.Id),
+                AllocationRules.GetDescriptor(AllocationRules.NewArrayRule.Id)
+            );
+
+
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, EnabledRules rules)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
@@ -55,62 +52,60 @@ namespace ClrHeapAllocationAnalyzer
             // var testing = new TestClass { Name = "Bob" };
             //               |             |--------------| <- InitializerExpressionSyntax or SyntaxKind.ObjectInitializerExpression
             //               |----------------------------| <- ObjectCreationExpressionSyntax or SyntaxKind.ObjectCreationExpression
-            var initializerExpression = node as InitializerExpressionSyntax;
-            if (initializerExpression?.Parent is ObjectCreationExpressionSyntax)
+            if (rules.IsEnabled(AllocationRules.InitializerCreationRule.Id))
             {
-                var objectCreation = node.Parent as ObjectCreationExpressionSyntax;
-                var typeInfo = semanticModel.GetTypeInfo(objectCreation, cancellationToken);
-                if (typeInfo.ConvertedType?.TypeKind != TypeKind.Error &&
-                    typeInfo.ConvertedType?.IsReferenceType == true &&
-                    objectCreation.Parent?.IsKind(SyntaxKind.EqualsValueClause) == true &&
-                    objectCreation.Parent?.Parent?.IsKind(SyntaxKind.VariableDeclarator) == true)
+                var initializerExpression = node as InitializerExpressionSyntax;
+                if (initializerExpression?.Parent is ObjectCreationExpressionSyntax)
                 {
-                    reportDiagnostic(Diagnostic.Create(InitializerCreationRule, ((VariableDeclaratorSyntax)objectCreation.Parent.Parent).Identifier.GetLocation(), EmptyMessageArgs));
-                    HeapAllocationAnalyzerEventSource.Logger.NewInitializerExpression(filePath);
-                    return;
+                    var objectCreation = node.Parent as ObjectCreationExpressionSyntax;
+                    var typeInfo = semanticModel.GetTypeInfo(objectCreation, cancellationToken);
+                    if (typeInfo.ConvertedType?.TypeKind != TypeKind.Error &&
+                        typeInfo.ConvertedType?.IsReferenceType == true &&
+                        objectCreation.Parent?.IsKind(SyntaxKind.EqualsValueClause) == true &&
+                        objectCreation.Parent?.Parent?.IsKind(SyntaxKind.VariableDeclarator) == true)
+                    {
+                        reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.InitializerCreationRule.Id), ((VariableDeclaratorSyntax) objectCreation.Parent.Parent).Identifier.GetLocation(), EmptyMessageArgs));
+                        HeapAllocationAnalyzerEventSource.Logger.NewInitializerExpression(filePath);
+                        return;
+                    }
                 }
             }
 
-            var implicitArrayExpression = node as ImplicitArrayCreationExpressionSyntax;
-            if (implicitArrayExpression != null)
+            if (rules.IsEnabled(AllocationRules.ImplicitArrayCreationRule.Id) && node is ImplicitArrayCreationExpressionSyntax implicitArrayExpression)
             {
-                reportDiagnostic(Diagnostic.Create(ImplicitArrayCreationRule, implicitArrayExpression.NewKeyword.GetLocation(), EmptyMessageArgs));
+                reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.ImplicitArrayCreationRule.Id), implicitArrayExpression.NewKeyword.GetLocation(), EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.NewImplicitArrayCreationExpression(filePath);
                 return;
             }
 
-            var newAnon = node as AnonymousObjectCreationExpressionSyntax;
-            if (newAnon != null)
+            if (rules.IsEnabled(AllocationRules.AnonymousNewObjectRule.Id) && node is AnonymousObjectCreationExpressionSyntax newAnon)
             {
-                reportDiagnostic(Diagnostic.Create(AnonymousNewObjectRule, newAnon.NewKeyword.GetLocation(), EmptyMessageArgs));
+                reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.AnonymousNewObjectRule.Id), newAnon.NewKeyword.GetLocation(), EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.NewAnonymousObjectCreationExpression(filePath);
                 return;
             }
 
-            var newArr = node as ArrayCreationExpressionSyntax;
-            if (newArr != null)
+            if (rules.IsEnabled(AllocationRules.NewArrayRule.Id) && node is ArrayCreationExpressionSyntax newArr)
             {
-                reportDiagnostic(Diagnostic.Create(NewArrayRule, newArr.NewKeyword.GetLocation(), EmptyMessageArgs));
+                reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.NewArrayRule.Id), newArr.NewKeyword.GetLocation(), EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.NewArrayExpression(filePath);
                 return;
             }
 
-            var newObj = node as ObjectCreationExpressionSyntax;
-            if (newObj != null)
+            if (rules.IsEnabled(AllocationRules.NewObjectRule.Id) && node is ObjectCreationExpressionSyntax newObj)
             {
                 var typeInfo = semanticModel.GetTypeInfo(newObj, cancellationToken);
                 if (typeInfo.ConvertedType != null && typeInfo.ConvertedType.TypeKind != TypeKind.Error && typeInfo.ConvertedType.IsReferenceType)
                 {
-                    reportDiagnostic(Diagnostic.Create(NewObjectRule, newObj.NewKeyword.GetLocation(), EmptyMessageArgs));
+                    reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.NewObjectRule.Id), newObj.NewKeyword.GetLocation(), EmptyMessageArgs));
                     HeapAllocationAnalyzerEventSource.Logger.NewObjectCreationExpression(filePath);
                 }
                 return;
             }
 
-            var letKind = node as LetClauseSyntax;
-            if (letKind != null)
+            if (rules.IsEnabled(AllocationRules.LetCauseRule.Id) && node is LetClauseSyntax letKind)
             {
-                reportDiagnostic(Diagnostic.Create(LetCauseRule, letKind.LetKeyword.GetLocation(), EmptyMessageArgs));
+                reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.LetCauseRule.Id), letKind.LetKeyword.GetLocation(), EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.LetClauseExpression(filePath);
                 return;
             }

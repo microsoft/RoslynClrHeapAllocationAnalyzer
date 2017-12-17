@@ -31,6 +31,24 @@ namespace ClrHeapAllocationAnalyzer.Common {
         public static readonly AllocationRuleDescription ReferenceTypeEnumeratorRule =
             new AllocationRuleDescription("HAA0401", "Possible allocation of reference type enumerator", "Non-ValueType enumerator may result in an heap allocation", DiagnosticSeverity.Warning);
 
+        // Used by ExplicitAllocationAnalyzer
+        public static readonly AllocationRuleDescription NewArrayRule =
+            new AllocationRuleDescription("HAA0501", "Explicit new array type allocation", "Explicit new array type allocation", DiagnosticSeverity.Info);
+
+        public static readonly AllocationRuleDescription NewObjectRule =
+            new AllocationRuleDescription("HAA0502", "Explicit new reference type allocation", "Explicit new reference type allocation", DiagnosticSeverity.Info);
+
+        public static readonly AllocationRuleDescription AnonymousNewObjectRule =
+            new AllocationRuleDescription("HAA0503", "Explicit new anonymous object allocation", "Explicit new anonymous object allocation", DiagnosticSeverity.Info, "http://msdn.microsoft.com/en-us/library/bb397696.aspx");
+
+        public static readonly AllocationRuleDescription ImplicitArrayCreationRule =
+            new AllocationRuleDescription("HAA0504", "Implicit new array creation allocation", "Implicit new array creation allocation", DiagnosticSeverity.Info);
+
+        public static readonly AllocationRuleDescription InitializerCreationRule =
+            new AllocationRuleDescription("HAA0505", "Initializer reference type allocation", "Initializer reference type allocation", DiagnosticSeverity.Info);
+
+        public static readonly AllocationRuleDescription LetCauseRule =
+            new AllocationRuleDescription("HAA0506", "Let clause induced allocation", "Let clause induced allocation", DiagnosticSeverity.Info);
 
         public static IEnumerable<AllocationRuleDescription> DefaultValues() {
             yield return ParamsParameterRule;
@@ -41,6 +59,12 @@ namespace ClrHeapAllocationAnalyzer.Common {
             yield return ClosureCaptureRule;
             yield return LambaOrAnonymousMethodInGenericMethodRule;
             yield return ReferenceTypeEnumeratorRule;
+            yield return NewArrayRule;
+            yield return NewObjectRule;
+            yield return AnonymousNewObjectRule;
+            yield return ImplicitArrayCreationRule;
+            yield return InitializerCreationRule;
+            yield return LetCauseRule;
         }
     }
 }
