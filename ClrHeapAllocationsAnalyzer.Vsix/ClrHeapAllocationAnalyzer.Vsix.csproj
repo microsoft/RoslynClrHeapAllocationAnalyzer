@@ -116,6 +116,15 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="HeapAllocationAnalyzerOptionsPackage.cs" />
+    <Compile Include="RulesOptionsControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="RulesOptionsControl.Designer.cs">
+      <DependentUpon>RulesOptionsControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="RulesOptionsPage.cs">
+      <SubType>Component</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="EnvDTE, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
@@ -211,6 +220,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="RulesOptionsControl.resx">
+      <DependentUpon>RulesOptionsControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="VSPackage.resx">
       <MergeWithCTO>true</MergeWithCTO>
       <ManifestResourceName>VSPackage</ManifestResourceName>

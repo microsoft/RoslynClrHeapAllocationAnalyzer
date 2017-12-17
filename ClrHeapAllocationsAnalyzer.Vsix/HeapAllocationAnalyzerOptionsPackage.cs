@@ -16,6 +16,7 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExists_string)] // Load the package when a solution is opened
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1650:ElementDocumentationMustBeSpelledCorrectly", Justification = "pkgdef, VS and vsixmanifest are valid VS terms")]
     [ProvideOptionPage(typeof(GeneralOptionsPage), "Heap Allocation Analyzer", "General", 0, 0, true)]
+    [ProvideOptionPage(typeof(RulesOptionPage), "Heap Allocation Analyzer", "Rules", 0, 0, true)]
     public sealed class HeapAllocationAnalyzerOptionsPackage : Package
     {
         /// <summary>
