@@ -11,5 +11,7 @@ namespace ClrHeapAllocationAnalyzer.Common {
         DiagnosticSeverity GetSeverity(string ruleId, DiagnosticSeverity defaultValue);
 
         DiagnosticSeverity GetSeverity(AllocationRuleDescription defaultDescription);
+
+        void SetSeverity(string ruleId, DiagnosticSeverity severity);
     }
 }
