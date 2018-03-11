@@ -37,7 +37,11 @@ namespace ClrHeapAllocationAnalyzer
 
             if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is IMethodSymbol methodInfo)
             {
-                CheckNonOverridenMethodOnStruct(methodInfo, reportDiagnostic, invocationExpression, filePath);
+                if (!methodInfo.IsStatic)
+                {
+                    CheckNonOverridenMethodOnStruct(methodInfo, reportDiagnostic, invocationExpression, filePath);
+                }
+
                 if (methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
                 {
                     var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];

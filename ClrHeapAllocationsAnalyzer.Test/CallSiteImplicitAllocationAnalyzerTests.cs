@@ -45,10 +45,9 @@ public void ParamsWithObjects(params object[] args)
         }
 
         [TestMethod]
-        public void CallSiteImplicitAllocation_NonOverridenMethodOnStruct()
-        {
-             var sampleProgram =
-@"using System;
+        public void CallSiteImplicitAllocation_NonOverridenMethodOnStruct() {
+            var sampleProgram =
+                @"using System;
 
 var normal = new Normal().GetHashCode();
 var overridden = new OverrideToHashCode().GetHashCode();
@@ -74,5 +73,15 @@ struct OverrideToHashCode
             // Diagnostic: (3,14): warning HeapAnalyzerValueTypeNonOverridenCallRule: Non-overriden virtual method call on a value type adds a boxing or constrained instruction
             AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ValueTypeNonOverridenCallRule.Id, line: 3, character: 14);
         }
+
+        [TestMethod]
+        public void CallSiteImplicitAllocation_DoNotReportNonOverriddenMethodCallForStaticCalls() {
+            var snippet = @"var t = System.Enum.GetUnderlyingType(typeof(System.StringComparison));";
+
+            var analyser = new CallSiteImplicitAllocationAnalyzer();
+            var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.InvocationExpression));
+
+            Assert.AreEqual(0, info.Allocations.Count);
+          }
     }
 }
