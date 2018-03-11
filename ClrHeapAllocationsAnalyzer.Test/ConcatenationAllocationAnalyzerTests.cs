@@ -39,5 +39,22 @@ var withoutBoxing = 5.ToString() + "":"" + 8.ToString();
             // Diagnostic: (10,52): warning HeapAnalyzerStringConcatRule: Considering using StringBuilder
             AssertEx.ContainsDiagnostic(info.Allocations, id: ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id, line: 4, character: 40);
         }
+
+        [TestMethod]
+        public void ConcatenationAllocation_DoNotWarnForConst() {
+            var snippets = new[]
+            {
+                @"const string s0 = nameof(System.String) + ""."" + nameof(System.String);",
+                @"const string s0 = nameof(System.String) + ""."";",
+                @"string s0 = nameof(System.String) + ""."" + nameof(System.String);",
+                @"string s0 = nameof(System.String) + ""."";"
+            };
+
+            var analyser = new ConcatenationAllocationAnalyzer();
+            foreach (var snippet in snippets) {
+                var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
+                Assert.AreEqual(0, info.Allocations.Count);
+            }
+        }
     }
 }
