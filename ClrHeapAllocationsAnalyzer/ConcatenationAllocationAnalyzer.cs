@@ -56,10 +56,7 @@
                 // regular string allocation
                 if (left.Type?.SpecialType == SpecialType.System_String || right.Type?.SpecialType == SpecialType.System_String)
                 {
-a                    reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
-b                    HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
-c                        stringConcatenationCount++;
-                    }
+                      stringConcatenationCount++;   
                 }
             }
 
@@ -67,6 +64,7 @@ c                        stringConcatenationCount++;
             {
                 reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, node.GetLocation(), EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
+            }
         }
 
         private static void CheckForTypeConversion(ExpressionSyntax expression, TypeInfo typeInfo, Action<Diagnostic> reportDiagnostic, string filePath)
