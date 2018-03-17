@@ -7,13 +7,16 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
+// TODO: Is there a difference between rules and SupportedDiagnostics?
+// TODO: Kolla att alla felrapporter ar wrappade i IsEnabled
+
 namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class TypeConversionAllocationAnalyzer : AllocationAnalyzer {
-        protected override string[] Rules => new[] {AllocationRules.ValueTypeToReferenceTypeConversionRule.Id, AllocationRules.DelegateOnStructInstanceRule.Id, AllocationRules.MethodGroupAllocationRule.Id };
+        protected override string[] Rules => new[] {AllocationRules.ValueTypeToReferenceTypeConversionRule.Id, AllocationRules.DelegateOnStructInstanceRule.Id, AllocationRules.MethodGroupAllocationRule.Id, AllocationRules.ReadonlyMethodGroupAllocationRule.Id };
 
-        protected override SyntaxKind[] Expressions => new[] {
+        protected override SyntaxKind[] Expressions => new [] {
             SyntaxKind.SimpleAssignmentExpression,
             SyntaxKind.ReturnStatement,
             SyntaxKind.YieldReturnStatement,
@@ -30,7 +33,8 @@ namespace ClrHeapAllocationAnalyzer
             ImmutableArray.Create(
                 AllocationRules.GetDescriptor(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id),
                 AllocationRules.GetDescriptor(AllocationRules.DelegateOnStructInstanceRule.Id),
-                AllocationRules.GetDescriptor(AllocationRules.MethodGroupAllocationRule.Id)
+                AllocationRules.GetDescriptor(AllocationRules.MethodGroupAllocationRule.Id),
+                AllocationRules.GetDescriptor(AllocationRules.ReadonlyMethodGroupAllocationRule.Id)
             );
 
         private static readonly object[] EmptyMessageArgs = { };
@@ -42,6 +46,9 @@ namespace ClrHeapAllocationAnalyzer
             var cancellationToken = context.CancellationToken;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
             string filePath = node.SyntaxTree.FilePath;
+            bool assignedToReadonlyFieldOrProperty = 
+                (context.ContainingSymbol as IFieldSymbol)?.IsReadOnly == true ||
+                (context.ContainingSymbol as IPropertySymbol)?.IsReadOnly == true;
 
             bool isValueTypeToReferenceRuleEnabled = rules.TryGet(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id,
                 out DiagnosticDescriptor valueTypeToReferenceRule);
@@ -50,7 +57,7 @@ namespace ClrHeapAllocationAnalyzer
             // new myobject(10);
             if (node is ArgumentSyntax)
             {
-                ArgumentSyntaxCheck(rules, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                ArgumentSyntaxCheck(rules, node, semanticModel, assignedToReadonlyFieldOrProperty, reportDiagnostic, filePath, cancellationToken);
             }
 
             // object foo { get { return 0; } }
@@ -71,14 +78,14 @@ namespace ClrHeapAllocationAnalyzer
             // var a = 10 as object;
             if (isValueTypeToReferenceRuleEnabled && node is BinaryExpressionSyntax)
             {
-                BinaryExpressionCheck(rules, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                BinaryExpressionCheck(rules, node, semanticModel, assignedToReadonlyFieldOrProperty, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
             // for (object i = 0;;)
             if (node is EqualsValueClauseSyntax)
             {
-                EqualsValueClauseCheck(rules, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                EqualsValueClauseCheck(rules, node, semanticModel, assignedToReadonlyFieldOrProperty, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
@@ -117,7 +124,7 @@ namespace ClrHeapAllocationAnalyzer
             }
         }
 
-        private static void ArgumentSyntaxCheck(EnabledRules rules, SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void ArgumentSyntaxCheck(EnabledRules rules, SyntaxNode node, SemanticModel semanticModel, bool isAssignmentToReadonly, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var argument = node as ArgumentSyntax;
             if (argument.Expression != null)
@@ -125,14 +132,13 @@ namespace ClrHeapAllocationAnalyzer
                 var argumentTypeInfo = semanticModel.GetTypeInfo(argument.Expression, cancellationToken);
                 if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
                 {
+                    CheckDelegateCreation(rules, argument.Expression, argumentTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, argument.Expression.GetLocation(), filePath, cancellationToken);
                     CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), argumentTypeInfo, reportDiagnostic, argument.Expression.GetLocation(), filePath);
                 }
-
-                CheckDelegateCreation(rules, argument.Expression, argumentTypeInfo, semanticModel, reportDiagnostic, argument.Expression.GetLocation(), filePath, cancellationToken);
-            }
+             }
         }
 
-        private static void BinaryExpressionCheck(EnabledRules rules, SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void BinaryExpressionCheck(EnabledRules rules, SyntaxNode node, SemanticModel semanticModel, bool isAssignmentToReadonly, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var binaryExpression = node as BinaryExpressionSyntax;
             if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
@@ -159,9 +165,9 @@ namespace ClrHeapAllocationAnalyzer
                 var assignmentExprTypeInfo = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
                 if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
                 {
+                    CheckDelegateCreation(rules, binaryExpression.Right, assignmentExprTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
                     CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), assignmentExprTypeInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
                 }
-                CheckDelegateCreation(rules, binaryExpression.Right, assignmentExprTypeInfo, semanticModel, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
                 return;
             }
         }
@@ -199,7 +205,7 @@ namespace ClrHeapAllocationAnalyzer
             }
         }
 
-        private static void EqualsValueClauseCheck(EnabledRules rules, SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        private static void EqualsValueClauseCheck(EnabledRules rules, SyntaxNode node, SemanticModel semanticModel, bool isAssignmentToReadonly, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var initializer = node as EqualsValueClauseSyntax;
             if (initializer.Value != null)
@@ -207,9 +213,9 @@ namespace ClrHeapAllocationAnalyzer
                 var typeInfo = semanticModel.GetTypeInfo(initializer.Value, cancellationToken);
                 if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
                 {
+                    CheckDelegateCreation(rules, initializer.Value, typeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, initializer.Value.GetLocation(), filePath, cancellationToken);
                     CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), typeInfo, reportDiagnostic, initializer.Value.GetLocation(), filePath);
                 }
-                CheckDelegateCreation(rules, initializer.Value, typeInfo, semanticModel, reportDiagnostic, initializer.Value.GetLocation(), filePath, cancellationToken);
             }
         }
         
@@ -221,7 +227,7 @@ namespace ClrHeapAllocationAnalyzer
             }
         }
 
-        private static void CheckDelegateCreation(EnabledRules rules, SyntaxNode node, TypeInfo typeInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, Location location, string filePath, CancellationToken cancellationToken)
+        private static void CheckDelegateCreation(EnabledRules rules, SyntaxNode node, TypeInfo typeInfo, SemanticModel semanticModel, bool isAssignmentToReadonly, Action<Diagnostic> reportDiagnostic, Location location, string filePath, CancellationToken cancellationToken)
         {
             // special case: method groups
             if (typeInfo.ConvertedType?.TypeKind == TypeKind.Delegate)
@@ -238,8 +244,7 @@ namespace ClrHeapAllocationAnalyzer
                 {
                     if (rules.IsEnabled(AllocationRules.MethodGroupAllocationRule.Id) && node.IsKind(SyntaxKind.IdentifierName))
                     {
-                        var symbol = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol as IMethodSymbol;
-                        if (symbol != null)
+                        if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol is IMethodSymbol)
                         {
                             reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.MethodGroupAllocationRule.Id), location, EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
@@ -248,11 +253,18 @@ namespace ClrHeapAllocationAnalyzer
                     else if (rules.IsEnabled(AllocationRules.MethodGroupAllocationRule.Id) && node.IsKind(SyntaxKind.SimpleMemberAccessExpression))
                     {
                         var memberAccess = node as MemberAccessExpressionSyntax;
-                        var symbol = semanticModel.GetSymbolInfo(memberAccess.Name, cancellationToken).Symbol as IMethodSymbol;
-                        if (symbol != null)
+                        if (semanticModel.GetSymbolInfo(memberAccess.Name, cancellationToken).Symbol is IMethodSymbol)
                         {
-                            reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.MethodGroupAllocationRule.Id), location, EmptyMessageArgs));
-                            HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                            if (isAssignmentToReadonly)
+                            {
+                                reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.ReadonlyMethodGroupAllocationRule.Id), location, EmptyMessageArgs));
+                                HeapAllocationAnalyzerEventSource.Logger.ReadonlyMethodGroupAllocation(filePath);
+                            }
+                            else
+                            {
+                                reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.MethodGroupAllocationRule.Id), location, EmptyMessageArgs));
+                                HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
+                            }
                         }
                     }
                 }

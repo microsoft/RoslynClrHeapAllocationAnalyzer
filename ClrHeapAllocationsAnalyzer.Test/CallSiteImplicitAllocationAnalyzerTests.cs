@@ -47,10 +47,9 @@ public void ParamsWithObjects(params object[] args)
         }
 
         [TestMethod]
-        public void CallSiteImplicitAllocation_NonOverridenMethodOnStruct()
-        {
-             var sampleProgram =
-@"using System;
+        public void CallSiteImplicitAllocation_NonOverridenMethodOnStruct() {
+            var sampleProgram =
+                @"using System;
 
 var normal = new Normal().GetHashCode();
 var overridden = new OverrideToHashCode().GetHashCode();
@@ -107,5 +106,15 @@ struct OverrideToHashCode
             info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
             Assert.AreEqual(0, info.Allocations.Count(x => x.Id == AllocationRules.ValueTypeNonOverridenCallRule.Id));
         }
+
+        [TestMethod]
+        public void CallSiteImplicitAllocation_DoNotReportNonOverriddenMethodCallForStaticCalls() {
+            var snippet = @"var t = System.Enum.GetUnderlyingType(typeof(System.StringComparison));";
+
+            var analyser = new CallSiteImplicitAllocationAnalyzer();
+            var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.InvocationExpression));
+
+            Assert.AreEqual(0, info.Allocations.Count);
+          }
     }
 }

@@ -60,6 +60,9 @@ namespace ClrHeapAllocationAnalyzer.Common {
         public static readonly AllocationRuleDescription MethodGroupAllocationRule =
             new AllocationRuleDescription("HAA0603", "Delegate allocation from a method group", "This will allocate a delegate instance", DiagnosticSeverity.Warning);
 
+        public static readonly AllocationRuleDescription ReadonlyMethodGroupAllocationRule =
+            new AllocationRuleDescription("HAA0604", "Delegate allocation from a readonly method group", "This will allocate a delegate instance", DiagnosticSeverity.Info);
+
         public static IEnumerable<AllocationRuleDescription> DefaultValues() {
             yield return ParamsParameterRule;
             yield return ValueTypeNonOverridenCallRule;
@@ -78,6 +81,7 @@ namespace ClrHeapAllocationAnalyzer.Common {
             yield return ValueTypeToReferenceTypeConversionRule;
             yield return DelegateOnStructInstanceRule;
             yield return MethodGroupAllocationRule;
+            yield return ReadonlyMethodGroupAllocationRule;
         }
     }
 }

@@ -13,8 +13,7 @@ namespace ClrHeapAllocationAnalyzer
     {
         protected override string[] Rules => new string[] {AllocationRules.NewArrayRule.Id, AllocationRules.NewObjectRule.Id, AllocationRules.AnonymousNewObjectRule.Id, AllocationRules.ImplicitArrayCreationRule.Id, AllocationRules.InitializerCreationRule.Id, AllocationRules.LetCauseRule.Id };
 
-        protected override SyntaxKind[] Expressions => new[]
-        {
+        protected override SyntaxKind[] Expressions => new[] {
             SyntaxKind.ObjectCreationExpression,            // Used
             SyntaxKind.AnonymousObjectCreationExpression,   // Used
             SyntaxKind.ArrayInitializerExpression,          // Used (this is inside an ImplicitArrayCreationExpression)
@@ -25,7 +24,6 @@ namespace ClrHeapAllocationAnalyzer
             SyntaxKind.ImplicitArrayCreationExpression,     // Used (this then contains an ArrayInitializerExpression)
             SyntaxKind.LetClause                            // Used
         };
-
 
         private static readonly object[] EmptyMessageArgs = { };
 
@@ -38,7 +36,6 @@ namespace ClrHeapAllocationAnalyzer
                 AllocationRules.GetDescriptor(AllocationRules.NewObjectRule.Id),
                 AllocationRules.GetDescriptor(AllocationRules.NewArrayRule.Id)
             );
-
 
         protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, EnabledRules rules)
         {
