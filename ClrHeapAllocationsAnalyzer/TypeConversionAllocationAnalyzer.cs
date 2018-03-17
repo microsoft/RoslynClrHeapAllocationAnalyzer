@@ -131,8 +131,8 @@
             {
                 var argumentTypeInfo = semanticModel.GetTypeInfo(argument.Expression, cancellationToken);
                 var argumentConversionInfo = semanticModel.GetConversion(argument.Expression, cancellationToken);
-a                CheckTypeConversion(argumentConversionInfo, reportDiagnostic, argument.Expression.GetLocation(), filePath);
-a                CheckDelegateCreation(argument.Expression, argumentTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, argument.Expression.GetLocation(), filePath, cancellationToken);
+                CheckTypeConversion(argumentConversionInfo, reportDiagnostic, argument.Expression.GetLocation(), filePath);
+                CheckDelegateCreation(argument.Expression, argumentTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, argument.Expression.GetLocation(), filePath, cancellationToken);
             }
         }
 
@@ -159,8 +159,8 @@ a                CheckDelegateCreation(argument.Expression, argumentTypeInfo, se
             {
                 var assignmentExprTypeInfo = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
                 var assignmentExprConversionInfo = semanticModel.GetConversion(binaryExpression.Right, cancellationToken);
-a                CheckTypeConversion(assignmentExprConversionInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
-a                CheckDelegateCreation(binaryExpression.Right, assignmentExprTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
+                CheckTypeConversion(assignmentExprConversionInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
+                CheckDelegateCreation(binaryExpression.Right, assignmentExprTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
                 return;
             }
         }
@@ -205,8 +205,8 @@ a                CheckDelegateCreation(binaryExpression.Right, assignmentExprTyp
             {
                 var typeInfo = semanticModel.GetTypeInfo(initializer.Value, cancellationToken);
                 var conversionInfo = semanticModel.GetConversion(initializer.Value, cancellationToken);
-a                CheckTypeConversion(conversionInfo, reportDiagnostic, initializer.Value.GetLocation(), filePath);
-c                CheckDelegateCreation(initializer.Value, typeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, initializer.Value.GetLocation(), filePath, cancellationToken);
+                CheckTypeConversion(conversionInfo, reportDiagnostic, initializer.Value.GetLocation(), filePath);
+                CheckDelegateCreation(initializer.Value, typeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, initializer.Value.GetLocation(), filePath, cancellationToken);
             }
         }
 
