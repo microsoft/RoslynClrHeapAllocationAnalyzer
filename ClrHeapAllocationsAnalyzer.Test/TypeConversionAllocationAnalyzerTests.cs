@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace ClrHeapAllocationsAnalyzer.Test
 {
@@ -432,6 +433,25 @@ var f2 = (object)""5""; // NO Allocation
             // currently info.Allocations.Count == 1
             // with info.Allocations[0] =
             // (13,50): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
+        }
+
+        [TestMethod]
+        public void TypeConversionAllocation_DelegateAssignmentToReadonly_DoNotWarn()
+        {
+            string[] snippets =
+            {
+                @"private readonly System.Func<string, bool> fileExists = System.IO.File.Exists;",
+                @"private static readonly System.Func<string, bool> fileExists = System.IO.File.Exists;",
+                @"private System.Func<string, bool> fileExists { get; } = System.IO.File.Exists;",
+                @"private static System.Func<string, bool> fileExists { get; } = System.IO.File.Exists;"
+            };
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            foreach (var snippet in snippets)
+            {
+                var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
+                Assert.AreEqual(1, info.Allocations.Count(x => x.Id == TypeConversionAllocationAnalyzer.ReadonlyMethodGroupAllocationRule.Id), snippet);
+            }
         }
     }
 }

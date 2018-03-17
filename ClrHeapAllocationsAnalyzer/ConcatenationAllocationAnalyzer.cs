@@ -11,9 +11,9 @@
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class ConcatenationAllocationAnalyzer : DiagnosticAnalyzer
     {
-        public static DiagnosticDescriptor StringConcatenationAllocationRule = new DiagnosticDescriptor("HeapAnalyzerStringConcatRule", "Implicit string concatenation allocation", "Considering using StringBuilder", "Performance", DiagnosticSeverity.Warning, true, string.Empty, "http://msdn.microsoft.com/en-us/library/2839d5h5(v=vs.110).aspx");
+        public static DiagnosticDescriptor StringConcatenationAllocationRule = new DiagnosticDescriptor("HAA0201", "Implicit string concatenation allocation", "Considering using StringBuilder", "Performance", DiagnosticSeverity.Warning, true, string.Empty, "http://msdn.microsoft.com/en-us/library/2839d5h5(v=vs.110).aspx");
 
-        public static DiagnosticDescriptor ValueTypeToReferenceTypeInAStringConcatenationRule = new DiagnosticDescriptor("HeapAnalyzerBoxingRule", "Value type to reference type conversion allocation for string concatenation", "Value type ({0}) is being boxed to a reference type for a string concatenation.", "Performance", DiagnosticSeverity.Warning, true, string.Empty, "http://msdn.microsoft.com/en-us/library/yz2be5wk.aspx");
+        public static DiagnosticDescriptor ValueTypeToReferenceTypeInAStringConcatenationRule = new DiagnosticDescriptor("HAA0202", "Value type to reference type conversion allocation for string concatenation", "Value type ({0}) is being boxed to a reference type for a string concatenation.", "Performance", DiagnosticSeverity.Warning, true, string.Empty, "http://msdn.microsoft.com/en-us/library/yz2be5wk.aspx");
 
         internal static object[] EmptyMessageArgs = { };
 
@@ -36,18 +36,29 @@
             int stringConcatenationCount = 0;
             foreach (var binaryExpression in binaryExpressions)
             {
-                if (binaryExpression.Left != null && binaryExpression.Right != null)
+                if (binaryExpression.Left == null || binaryExpression.Right == null)
                 {
-                    var left = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
-                    CheckForTypeConversion(binaryExpression.Left, left, reportDiagnostic, filePath);
+                    continue;
+                }
 
-                    var right = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
-                    CheckForTypeConversion(binaryExpression.Right, right, reportDiagnostic, filePath);
+                bool isConstant = semanticModel.GetConstantValue(binaryExpression, cancellationToken).HasValue;
+                if (isConstant)
+                {
+                    continue;
+                }
 
-                    // regular string allocation
-                    if (left.Type != null && left.Type.SpecialType == SpecialType.System_String || right.Type != null && right.Type.SpecialType == SpecialType.System_String)
-                    {
-                        stringConcatenationCount++;
+                var left = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
+                CheckForTypeConversion(binaryExpression.Left, left, reportDiagnostic, filePath);
+
+                var right = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
+                CheckForTypeConversion(binaryExpression.Right, right, reportDiagnostic, filePath);
+
+                // regular string allocation
+                if (left.Type?.SpecialType == SpecialType.System_String || right.Type?.SpecialType == SpecialType.System_String)
+                {
+a                    reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
+b                    HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
+c                        stringConcatenationCount++;
                     }
                 }
             }
@@ -56,7 +67,6 @@
             {
                 reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, node.GetLocation(), EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
-            }
         }
 
         private static void CheckForTypeConversion(ExpressionSyntax expression, TypeInfo typeInfo, Action<Diagnostic> reportDiagnostic, string filePath)
