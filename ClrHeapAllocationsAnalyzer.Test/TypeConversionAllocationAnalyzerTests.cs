@@ -1,7 +1,9 @@
-﻿using ClrHeapAllocationAnalyzer;
+﻿using System;
+using ClrHeapAllocationAnalyzer;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace ClrHeapAllocationsAnalyzer.Test
 {
@@ -395,9 +397,18 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_ImplicitStringCastOperator()
-        {
-            var sampleProgram = @"
+        public void TypeConversionAllocation_ArgumentWithImplicitStringCastOperator() {
+            const string programWithoutImplicitCastOperator = @"
+                public struct AStruct
+                {
+                    public static void Dump(AStruct astruct)
+                    {
+                        System.Console.WriteLine(astruct);
+                    }
+                }
+            ";
+
+            const string programWithImplicitCastOperator = @"
                 public struct AStruct
                 {
                     public readonly string WrappedString;
@@ -417,21 +428,71 @@ var f2 = (object)""5""; // NO Allocation
                         return astruct.WrappedString;
                     }
                 }
-                public class Program
+            ";
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+
+            var info0 = ProcessCode(analyzer, programWithoutImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
+            AssertEx.ContainsDiagnostic(info0.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 6, character: 50);
+            
+            var info1 = ProcessCode(analyzer, programWithImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
+            Assert.AreEqual(0, info1.Allocations.Count, info1.Allocations[0].Id);
+        }
+
+
+        [TestMethod]
+        public void TypeConversionAllocation_YieldReturnImplicitStringCastOperator() {
+            const string programWithoutImplicitCastOperator = @"
+                public struct AStruct
                 {
-                    public static void Main()
+                    public System.Collections.Generic.IEnumerator<object> GetEnumerator()
                     {
-                        var astruct = new AStruct(System.Environment.MachineName);
-                        AStruct.Dump(astruct);
+                        yield return this;
                     }
                 }
             ";
+
+            const string programWithImplicitCastOperator = @"
+                public struct AStruct
+                {
+                    public System.Collections.Generic.IEnumerator<string> GetEnumerator()
+                    {
+                        yield return this;
+                    }
+
+                    public static implicit operator string(AStruct astruct)
+                    {
+                        return """";
+                    }
+                }
+            ";
+
             var analyzer = new TypeConversionAllocationAnalyzer();
-            var info = ProcessCode(analyzer, sampleProgram, ImmutableArray.Create(SyntaxKind.Argument));
-            Assert.AreEqual(0, info.Allocations.Count);
-            // currently info.Allocations.Count == 1
-            // with info.Allocations[0] =
-            // (13,50): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
+
+            var info0 = ProcessCode(analyzer, programWithoutImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
+            AssertEx.ContainsDiagnostic(info0.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 6, character: 38);
+
+            var info1 = ProcessCode(analyzer, programWithImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
+            Assert.AreEqual(0, info1.Allocations.Count);
+        }
+
+        [TestMethod]
+        public void TypeConversionAllocation_DelegateAssignmentToReadonly_DoNotWarn()
+        {
+            string[] snippets =
+            {
+                @"private readonly System.Func<string, bool> fileExists = System.IO.File.Exists;",
+                @"private static readonly System.Func<string, bool> fileExists = System.IO.File.Exists;",
+                @"private System.Func<string, bool> fileExists { get; } = System.IO.File.Exists;",
+                @"private static System.Func<string, bool> fileExists { get; } = System.IO.File.Exists;"
+            };
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            foreach (var snippet in snippets)
+            {
+                var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
+                Assert.AreEqual(1, info.Allocations.Count(x => x.Id == TypeConversionAllocationAnalyzer.ReadonlyMethodGroupAllocationRule.Id), snippet);
+            }
         }
     }
 }

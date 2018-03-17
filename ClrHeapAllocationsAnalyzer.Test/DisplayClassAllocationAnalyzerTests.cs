@@ -97,5 +97,47 @@ foreach (string word in words) // <-- captured closure
             // Diagnostic: (9,20): warning HeapAnalyzerClosureSourceRule: Heap allocation of closure Captures: word
             AssertEx.ContainsDiagnostic(info.Allocations, id: DisplayClassAllocationAnalyzer.ClosureDriverRule.Id, line: 9, character: 20);
         }
+
+        [TestMethod]
+        public void DisplayClassAllocation_DoNotReportForNonCapturingAnonymousMethod()
+        {
+            var snippet = @"
+                public static void Sorter(int[] arr) {
+                    System.Array.Sort(arr, delegate(int x, int y) { return x - y; });
+                }";
+
+            var analyser = new DisplayClassAllocationAnalyzer();
+            var info = ProcessCode(analyser, snippet, ImmutableArray.Create<SyntaxKind>());
+            Assert.AreEqual(0, info.Allocations.Count);
+        }
+
+        [TestMethod]
+        public void DisplayClassAllocation_DoNotReportForNonCapturingLambda()
+        {
+            var snippet = @"
+                public void Sorter(int[] arr) {
+                    System.Array.Sort(arr, (x, y) => x - y);
+                }";
+
+            var analyser = new DisplayClassAllocationAnalyzer();
+            var info = ProcessCode(analyser, snippet, ImmutableArray.Create<SyntaxKind>());
+            Assert.AreEqual(0, info.Allocations.Count);
+        }
+
+        [TestMethod]
+        public void DisplayClassAllocation_ReportForCapturingAnonymousMethod()
+        {
+            var snippet = @"
+                public void Sorter(int[] arr) {
+                    int z = 2;
+                    System.Array.Sort(arr, delegate(int x, int y) { return x - z; });
+                }";
+
+            var analyser = new DisplayClassAllocationAnalyzer();
+            var info = ProcessCode(analyser, snippet, ImmutableArray.Create<SyntaxKind>());
+            Assert.AreEqual(2, info.Allocations.Count);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: DisplayClassAllocationAnalyzer.ClosureCaptureRule.Id, line: 3, character: 25);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: DisplayClassAllocationAnalyzer.ClosureDriverRule.Id, line: 4, character: 44);
+        }
     }
 }

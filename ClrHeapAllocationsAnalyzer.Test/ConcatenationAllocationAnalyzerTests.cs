@@ -22,8 +22,8 @@ var withoutBoxing = 5.ToString() + "":"" + 8.ToString();
             var analyser = new ConcatenationAllocationAnalyzer();
             var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
 
-            Assert.AreEqual(1, info.Allocations.Count(d => d.Id == "HeapAnalyzerBoxingRule"));
-            Assert.AreEqual(4, info.Allocations.Count(d => d.Id == "HeapAnalyzerStringConcatRule"));
+            Assert.AreEqual(1, info.Allocations.Count(d => d.Id == ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule.Id));
+            Assert.AreEqual(4, info.Allocations.Count(d => d.Id == ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id));
 
             //### CODE ### 5.ToString() + 1 + 8.ToString()
             //*** Diagnostic: (9,45): warning HeapAnalyzerBoxingRule: Value type (char) is being boxed to a reference type for a string concatenation.
@@ -54,6 +54,23 @@ var withoutBoxing = 5.ToString() + "":"" + 8.ToString();
             foreach (var snippet in snippets) {
                 var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
                 Assert.AreEqual(0, info.Allocations.Count(x => x.Id == ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule.Id));
+            }
+        }
+        
+        [TestMethod]
+        public void ConcatenationAllocation_DoNotWarnForConst() {
+            var snippets = new[]
+            {
+                @"const string s0 = nameof(System.String) + ""."" + nameof(System.String);",
+                @"const string s0 = nameof(System.String) + ""."";",
+                @"string s0 = nameof(System.String) + ""."" + nameof(System.String);",
+                @"string s0 = nameof(System.String) + ""."";"
+            };
+
+            var analyser = new ConcatenationAllocationAnalyzer();
+            foreach (var snippet in snippets) {
+                var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
+                Assert.AreEqual(0, info.Allocations.Count);
             }
         }
     }

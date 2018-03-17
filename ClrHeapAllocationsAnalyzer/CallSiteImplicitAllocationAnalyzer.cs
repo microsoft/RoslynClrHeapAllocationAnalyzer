@@ -12,9 +12,9 @@ namespace ClrHeapAllocationAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class CallSiteImplicitAllocationAnalyzer : DiagnosticAnalyzer
     {
-        public static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor("HeapAnalyzerImplicitParamsRule", "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", "Performance", DiagnosticSeverity.Warning, true);
+        public static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor("HAA0101", "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", "Performance", DiagnosticSeverity.Warning, true);
 
-        public static DiagnosticDescriptor ValueTypeNonOverridenCallRule = new DiagnosticDescriptor("HeapAnalyzerValueTypeNonOverridenCallRule", "Non-overridden virtual method call on value type", "Non-overridden virtual method call on a value type adds a boxing or constrained instruction", "Performance", DiagnosticSeverity.Warning, true);
+        public static DiagnosticDescriptor ValueTypeNonOverridenCallRule = new DiagnosticDescriptor("HAA0102", "Non-overridden virtual method call on value type", "Non-overridden virtual method call on a value type adds a boxing or constrained instruction", "Performance", DiagnosticSeverity.Warning, true);
 
         internal static object[] EmptyMessageArgs = { };
 
@@ -37,7 +37,11 @@ namespace ClrHeapAllocationAnalyzer
 
             if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is IMethodSymbol methodInfo)
             {
-                CheckNonOverridenMethodOnStruct(methodInfo, reportDiagnostic, invocationExpression, filePath);
+                if (!methodInfo.IsStatic)
+                {
+                    CheckNonOverridenMethodOnStruct(methodInfo, reportDiagnostic, invocationExpression, filePath);
+                }
+
                 if (methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
                 {
                     var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
