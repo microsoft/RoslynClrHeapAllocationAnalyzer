@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Immutable;
+using System.Linq;
 
 namespace ClrHeapAllocationsAnalyzer.Test
 {
@@ -472,6 +473,25 @@ var f2 = (object)""5""; // NO Allocation
 
             var info1 = ProcessCode(analyzer, programWithImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
             Assert.AreEqual(0, info1.Allocations.Count);
+        }
+
+        [TestMethod]
+        public void TypeConversionAllocation_DelegateAssignmentToReadonly_DoNotWarn()
+        {
+            string[] snippets =
+            {
+                @"private readonly System.Func<string, bool> fileExists = System.IO.File.Exists;",
+                @"private static readonly System.Func<string, bool> fileExists = System.IO.File.Exists;",
+                @"private System.Func<string, bool> fileExists { get; } = System.IO.File.Exists;",
+                @"private static System.Func<string, bool> fileExists { get; } = System.IO.File.Exists;"
+            };
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            foreach (var snippet in snippets)
+            {
+                var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
+                Assert.AreEqual(1, info.Allocations.Count(x => x.Id == TypeConversionAllocationAnalyzer.ReadonlyMethodGroupAllocationRule.Id), snippet);
+            }
         }
     }
 }
