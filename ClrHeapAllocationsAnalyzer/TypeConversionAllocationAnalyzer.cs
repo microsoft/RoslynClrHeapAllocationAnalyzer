@@ -7,15 +7,10 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
-// TODO: Is there a difference between rules and SupportedDiagnostics?
-// TODO: Kolla att alla felrapporter ar wrappade i IsEnabled
-
 namespace ClrHeapAllocationAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class TypeConversionAllocationAnalyzer : AllocationAnalyzer {
-        protected override string[] Rules => new[] {AllocationRules.ValueTypeToReferenceTypeConversionRule.Id, AllocationRules.DelegateOnStructInstanceRule.Id, AllocationRules.MethodGroupAllocationRule.Id, AllocationRules.ReadonlyMethodGroupAllocationRule.Id };
-
         protected override SyntaxKind[] Expressions => new [] {
             SyntaxKind.SimpleAssignmentExpression,
             SyntaxKind.ReturnStatement,

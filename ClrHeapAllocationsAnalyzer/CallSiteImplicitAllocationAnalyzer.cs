@@ -13,8 +13,6 @@ namespace ClrHeapAllocationAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class CallSiteImplicitAllocationAnalyzer : AllocationAnalyzer
     {
-        protected override string[] Rules => new [] {AllocationRules.ParamsParameterRule.Id, AllocationRules.ValueTypeNonOverridenCallRule.Id };
-    
         protected override SyntaxKind[] Expressions => new[] { SyntaxKind.InvocationExpression };
     
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => 

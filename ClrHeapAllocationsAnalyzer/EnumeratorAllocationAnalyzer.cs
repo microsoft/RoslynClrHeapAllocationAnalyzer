@@ -12,8 +12,6 @@ namespace ClrHeapAllocationAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class EnumeratorAllocationAnalyzer : AllocationAnalyzer
     {
-        protected override string[] Rules => new[] {AllocationRules.ReferenceTypeEnumeratorRule.Id };
-
         protected override SyntaxKind[] Expressions => new[] { SyntaxKind.ForEachStatement, SyntaxKind.InvocationExpression };
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>

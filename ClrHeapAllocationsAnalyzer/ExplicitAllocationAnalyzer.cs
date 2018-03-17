@@ -11,8 +11,6 @@ namespace ClrHeapAllocationAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class ExplicitAllocationAnalyzer : AllocationAnalyzer
     {
-        protected override string[] Rules => new string[] {AllocationRules.NewArrayRule.Id, AllocationRules.NewObjectRule.Id, AllocationRules.AnonymousNewObjectRule.Id, AllocationRules.ImplicitArrayCreationRule.Id, AllocationRules.InitializerCreationRule.Id, AllocationRules.LetCauseRule.Id };
-
         protected override SyntaxKind[] Expressions => new[] {
             SyntaxKind.ObjectCreationExpression,            // Used
             SyntaxKind.AnonymousObjectCreationExpression,   // Used
