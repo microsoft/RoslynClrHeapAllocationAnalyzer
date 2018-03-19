@@ -33,6 +33,7 @@
             string filePath = node.SyntaxTree.FilePath;
             var binaryExpressions = node.DescendantNodesAndSelf().OfType<BinaryExpressionSyntax>().Reverse(); // need inner most expressions
 
+            int stringConcatenationCount = 0;
             foreach (var binaryExpression in binaryExpressions)
             {
                 if (binaryExpression.Left == null || binaryExpression.Right == null)
@@ -55,9 +56,14 @@
                 // regular string allocation
                 if (left.Type?.SpecialType == SpecialType.System_String || right.Type?.SpecialType == SpecialType.System_String)
                 {
-                    reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
-                    HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
+                      stringConcatenationCount++;   
                 }
+            }
+
+            if (stringConcatenationCount > 3)
+            {
+                reportDiagnostic(Diagnostic.Create(StringConcatenationAllocationRule, node.GetLocation(), EmptyMessageArgs));
+                HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
             }
         }
 
