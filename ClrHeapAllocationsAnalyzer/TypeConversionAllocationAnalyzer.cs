@@ -1,9 +1,7 @@
 ﻿namespace ClrHeapAllocationAnalyzer
 {
     using System;
-    using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Linq;
     using System.Threading;
     using Microsoft.CodeAnalysis;
     using Microsoft.CodeAnalysis.CSharp;
@@ -111,8 +109,8 @@
             var returnStatementExpression = node as ReturnStatementSyntax;
             if (returnStatementExpression.Expression != null)
             {
-                var returnTypeInfo = semanticModel.GetTypeInfo(returnStatementExpression.Expression, cancellationToken);
-                CheckTypeConversion(returnTypeInfo, reportDiagnostic, returnStatementExpression.Expression.GetLocation(), filePath);
+                var returnConversionInfo = semanticModel.GetConversion(returnStatementExpression.Expression, cancellationToken);
+                CheckTypeConversion(returnConversionInfo, reportDiagnostic, returnStatementExpression.Expression.GetLocation(), filePath);
             }
         }
 
@@ -121,8 +119,8 @@
             var yieldExpression = node as YieldStatementSyntax;
             if (yieldExpression.Expression != null)
             {
-                var returnTypeInfo = semanticModel.GetTypeInfo(yieldExpression.Expression, cancellationToken);
-                CheckTypeConversion(returnTypeInfo, reportDiagnostic, yieldExpression.Expression.GetLocation(), filePath);
+                var returnConversionInfo = semanticModel.GetConversion(yieldExpression.Expression, cancellationToken);
+                CheckTypeConversion(returnConversionInfo, reportDiagnostic, yieldExpression.Expression.GetLocation(), filePath);
             }
         }
 
@@ -132,7 +130,8 @@
             if (argument.Expression != null)
             {
                 var argumentTypeInfo = semanticModel.GetTypeInfo(argument.Expression, cancellationToken);
-                CheckTypeConversion(argumentTypeInfo, reportDiagnostic, argument.Expression.GetLocation(), filePath);
+                var argumentConversionInfo = semanticModel.GetConversion(argument.Expression, cancellationToken);
+                CheckTypeConversion(argumentConversionInfo, reportDiagnostic, argument.Expression.GetLocation(), filePath);
                 CheckDelegateCreation(argument.Expression, argumentTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, argument.Expression.GetLocation(), filePath, cancellationToken);
             }
         }
@@ -159,7 +158,8 @@
             if (binaryExpression.Right != null)
             {
                 var assignmentExprTypeInfo = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
-                CheckTypeConversion(assignmentExprTypeInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
+                var assignmentExprConversionInfo = semanticModel.GetConversion(binaryExpression.Right, cancellationToken);
+                CheckTypeConversion(assignmentExprConversionInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
                 CheckDelegateCreation(binaryExpression.Right, assignmentExprTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
                 return;
             }
@@ -189,12 +189,12 @@
 
             if (trueExp != null)
             {
-                CheckTypeConversion(semanticModel.GetTypeInfo(trueExp, cancellationToken), reportDiagnostic, trueExp.GetLocation(), filePath);
+                CheckTypeConversion(semanticModel.GetConversion(trueExp, cancellationToken), reportDiagnostic, trueExp.GetLocation(), filePath);
             }
 
             if (falseExp != null)
             {
-                CheckTypeConversion(semanticModel.GetTypeInfo(falseExp, cancellationToken), reportDiagnostic, falseExp.GetLocation(), filePath);
+                CheckTypeConversion(semanticModel.GetConversion(falseExp, cancellationToken), reportDiagnostic, falseExp.GetLocation(), filePath);
             }
         }
 
@@ -204,14 +204,15 @@
             if (initializer.Value != null)
             {
                 var typeInfo = semanticModel.GetTypeInfo(initializer.Value, cancellationToken);
-                CheckTypeConversion(typeInfo, reportDiagnostic, initializer.Value.GetLocation(), filePath);
+                var conversionInfo = semanticModel.GetConversion(initializer.Value, cancellationToken);
+                CheckTypeConversion(conversionInfo, reportDiagnostic, initializer.Value.GetLocation(), filePath);
                 CheckDelegateCreation(initializer.Value, typeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, initializer.Value.GetLocation(), filePath, cancellationToken);
             }
         }
 
-        private static void CheckTypeConversion(TypeInfo typeInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
+        private static void CheckTypeConversion(Conversion conversionInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
         {
-            if (typeInfo.Type?.IsValueType == true && typeInfo.ConvertedType?.IsValueType != true)
+            if (conversionInfo.IsBoxing)
             {
                 reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, location, EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
