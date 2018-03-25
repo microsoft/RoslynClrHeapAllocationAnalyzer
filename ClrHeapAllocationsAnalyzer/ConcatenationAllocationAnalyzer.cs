@@ -30,6 +30,7 @@ namespace ClrHeapAllocationAnalyzer
             string filePath = node.SyntaxTree.FilePath;
             var binaryExpressions = node.DescendantNodesAndSelf().OfType<BinaryExpressionSyntax>().Reverse(); // need inner most expressions
 
+            int stringConcatenationCount = 0;
             foreach (var binaryExpression in binaryExpressions)
             {
                 if (binaryExpression.Left == null || binaryExpression.Right == null)
@@ -57,9 +58,15 @@ namespace ClrHeapAllocationAnalyzer
                 {
                     if (left.Type?.SpecialType == SpecialType.System_String || right.Type?.SpecialType == SpecialType.System_String)
                     {
-                        reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.StringConcatenationAllocationRule.Id), binaryExpression.OperatorToken.GetLocation(), EmptyMessageArgs));
-                        HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
+                        stringConcatenationCount++;
                     }
+                }
+
+                if (stringConcatenationCount > 3)
+                {
+                    var rule = rules.Get(AllocationRules.StringConcatenationAllocationRule.Id);
+                    reportDiagnostic(Diagnostic.Create(rule, node.GetLocation(), EmptyMessageArgs));
+                    HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
                 }
             }
         }

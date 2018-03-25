@@ -396,9 +396,18 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
-        public void TypeConversionAllocation_ImplicitStringCastOperator()
-        {
-            var sampleProgram = @"
+        public void TypeConversionAllocation_ArgumentWithImplicitStringCastOperator() {
+            const string programWithoutImplicitCastOperator = @"
+                public struct AStruct
+                {
+                    public static void Dump(AStruct astruct)
+                    {
+                        System.Console.WriteLine(astruct);
+                    }
+                }
+            ";
+
+            const string programWithImplicitCastOperator = @"
                 public struct AStruct
                 {
                     public readonly string WrappedString;
@@ -418,21 +427,52 @@ var f2 = (object)""5""; // NO Allocation
                         return astruct.WrappedString;
                     }
                 }
-                public class Program
+            ";
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+
+            var info0 = ProcessCode(analyzer, programWithoutImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
+            AssertEx.ContainsDiagnostic(info0.Allocations, id: AllocationRules.ValueTypeToReferenceTypeConversionRule.Id, line: 6, character: 50);
+
+            var info1 = ProcessCode(analyzer, programWithImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
+            Assert.AreEqual(0, info1.Allocations.Count);
+        }
+
+
+        [TestMethod]
+        public void TypeConversionAllocation_YieldReturnImplicitStringCastOperator() {
+            const string programWithoutImplicitCastOperator = @"
+                public struct AStruct
                 {
-                    public static void Main()
+                    public System.Collections.Generic.IEnumerator<object> GetEnumerator()
                     {
-                        var astruct = new AStruct(System.Environment.MachineName);
-                        AStruct.Dump(astruct);
+                        yield return this;
                     }
                 }
             ";
+
+            const string programWithImplicitCastOperator = @"
+                public struct AStruct
+                {
+                    public System.Collections.Generic.IEnumerator<string> GetEnumerator()
+                    {
+                        yield return this;
+                    }
+
+                    public static implicit operator string(AStruct astruct)
+                    {
+                        return """";
+                    }
+                }
+            ";
+
             var analyzer = new TypeConversionAllocationAnalyzer();
-            var info = ProcessCode(analyzer, sampleProgram, ImmutableArray.Create(SyntaxKind.Argument));
-            Assert.AreEqual(0, info.Allocations.Count);
-            // currently info.Allocations.Count == 1
-            // with info.Allocations[0] =
-            // (13,50): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
+
+            var info0 = ProcessCode(analyzer, programWithoutImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
+            AssertEx.ContainsDiagnostic(info0.Allocations, id: AllocationRules.ValueTypeToReferenceTypeConversionRule.Id, line: 6, character: 38);
+
+            var info1 = ProcessCode(analyzer, programWithImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
+            Assert.AreEqual(0, info1.Allocations.Count);
         }
 
         [TestMethod]

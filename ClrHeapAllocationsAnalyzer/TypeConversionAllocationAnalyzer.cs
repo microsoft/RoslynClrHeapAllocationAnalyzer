@@ -104,8 +104,8 @@ namespace ClrHeapAllocationAnalyzer
             var returnStatementExpression = node as ReturnStatementSyntax;
             if (returnStatementExpression.Expression != null)
             {
-                var returnTypeInfo = semanticModel.GetTypeInfo(returnStatementExpression.Expression, cancellationToken);
-                CheckTypeConversion(typeConversionRule, returnTypeInfo, reportDiagnostic, returnStatementExpression.Expression.GetLocation(), filePath);
+                var returnConversionInfo = semanticModel.GetConversion(returnStatementExpression.Expression, cancellationToken);
+                CheckTypeConversion(typeConversionRule, returnConversionInfo, reportDiagnostic, returnStatementExpression.Expression.GetLocation(), filePath);
             }
         }
 
@@ -114,8 +114,8 @@ namespace ClrHeapAllocationAnalyzer
             var yieldExpression = node as YieldStatementSyntax;
             if (yieldExpression.Expression != null)
             {
-                var returnTypeInfo = semanticModel.GetTypeInfo(yieldExpression.Expression, cancellationToken);
-                CheckTypeConversion(typeConversionRule, returnTypeInfo, reportDiagnostic, yieldExpression.Expression.GetLocation(), filePath);
+                var returnConversionInfo = semanticModel.GetConversion(yieldExpression.Expression, cancellationToken);
+                CheckTypeConversion(typeConversionRule, returnConversionInfo, reportDiagnostic, yieldExpression.Expression.GetLocation(), filePath);
             }
         }
 
@@ -125,10 +125,11 @@ namespace ClrHeapAllocationAnalyzer
             if (argument.Expression != null)
             {
                 var argumentTypeInfo = semanticModel.GetTypeInfo(argument.Expression, cancellationToken);
+                var argumentConversionInfo = semanticModel.GetConversion(argument.Expression, cancellationToken);
                 if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
                 {
                     CheckDelegateCreation(rules, argument.Expression, argumentTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, argument.Expression.GetLocation(), filePath, cancellationToken);
-                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), argumentTypeInfo, reportDiagnostic, argument.Expression.GetLocation(), filePath);
+                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), argumentConversionInfo, reportDiagnostic, argument.Expression.GetLocation(), filePath);
                 }
              }
         }
@@ -160,8 +161,9 @@ namespace ClrHeapAllocationAnalyzer
                 var assignmentExprTypeInfo = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
                 if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
                 {
+                    var assignmentExprConversionInfo = semanticModel.GetConversion(binaryExpression.Right, cancellationToken);
                     CheckDelegateCreation(rules, binaryExpression.Right, assignmentExprTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
-                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), assignmentExprTypeInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
+                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), assignmentExprConversionInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
                 }
                 return;
             }
@@ -191,12 +193,12 @@ namespace ClrHeapAllocationAnalyzer
 
             if (trueExp != null)
             {
-                CheckTypeConversion(rule, semanticModel.GetTypeInfo(trueExp, cancellationToken), reportDiagnostic, trueExp.GetLocation(), filePath);
+                CheckTypeConversion(rule, semanticModel.GetConversion(trueExp, cancellationToken), reportDiagnostic, trueExp.GetLocation(), filePath);
             }
 
             if (falseExp != null)
             {
-                CheckTypeConversion(rule, semanticModel.GetTypeInfo(falseExp, cancellationToken), reportDiagnostic, falseExp.GetLocation(), filePath);
+                CheckTypeConversion(rule, semanticModel.GetConversion(falseExp, cancellationToken), reportDiagnostic, falseExp.GetLocation(), filePath);
             }
         }
 
@@ -208,14 +210,15 @@ namespace ClrHeapAllocationAnalyzer
                 var typeInfo = semanticModel.GetTypeInfo(initializer.Value, cancellationToken);
                 if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id))
                 {
+                    var conversionInfo = semanticModel.GetConversion(initializer.Value, cancellationToken);
                     CheckDelegateCreation(rules, initializer.Value, typeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, initializer.Value.GetLocation(), filePath, cancellationToken);
-                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), typeInfo, reportDiagnostic, initializer.Value.GetLocation(), filePath);
+                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), conversionInfo, reportDiagnostic, initializer.Value.GetLocation(), filePath);
                 }
             }
         }
         
-        private static void CheckTypeConversion(DiagnosticDescriptor rule, TypeInfo typeInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath) {
-            if (typeInfo.Type?.IsValueType == true && typeInfo.ConvertedType?.IsValueType != true)
+        private static void CheckTypeConversion(DiagnosticDescriptor rule, Conversion conversionInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath) { 
+            if (conversionInfo.IsBoxing)
             {
                 reportDiagnostic(Diagnostic.Create(rule, location, EmptyMessageArgs));
                 HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
