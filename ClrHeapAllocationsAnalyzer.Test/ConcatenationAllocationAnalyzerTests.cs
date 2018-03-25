@@ -43,7 +43,7 @@ namespace ClrHeapAllocationAnalyzer.Test
             var analyser = new ConcatenationAllocationAnalyzer();
             foreach (var snippet in snippets) {
                 var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
-                Assert.AreEqual(0, info.Allocations.Count(x => x.Id == ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule.Id));
+                Assert.AreEqual(0, info.Allocations.Count(x => x.Id == AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id));
             }
         }
         
