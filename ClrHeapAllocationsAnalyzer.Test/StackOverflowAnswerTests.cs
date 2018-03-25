@@ -82,11 +82,9 @@ namespace ClrHeapAllocationsAnalyzer.Test
                 string s1 = ""char value will box"" + c;";
             var analyser = new ConcatenationAllocationAnalyzer();
             var info = ProcessCode(analyser, @script, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
-            Assert.AreEqual(2, info.Allocations.Count);
+            Assert.AreEqual(1, info.Allocations.Count);
             //Diagnostic: (2,53): warning HeapAnalyzerBoxingRule: Value type (char) is being boxed to a reference type for a string concatenation.
             AssertEx.ContainsDiagnostic(info.Allocations, ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule.Id, line: 2, character: 53);
-            //Diagnostic: (2,51): warning HeapAnalyzerStringConcatRule: Considering using StringBuilder
-            AssertEx.ContainsDiagnostic(info.Allocations, ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id, line: 2, character: 51);
         }
 
         [TestMethod]

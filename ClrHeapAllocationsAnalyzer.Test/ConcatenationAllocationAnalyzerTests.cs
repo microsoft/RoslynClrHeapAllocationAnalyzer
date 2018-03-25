@@ -7,37 +7,19 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace ClrHeapAllocationsAnalyzer.Test
 {
     [TestClass]
-    public class ConcatenationAllocationAnalyzerTests : AllocationAnalyzerTests
-    {
+    public class ConcatenationAllocationAnalyzerTests : AllocationAnalyzerTests {
         [TestMethod]
-        public void ConcatenationAllocation_Basic()
-        {
-            var sampleProgram =
-@"using System;
-
-var withBoxing = 5.ToString() + 1 + 8.ToString(); // Boxing on ':' 
-var withoutBoxing = 5.ToString() + "":"" + 8.ToString();
-";
+        public void ConcatenationAllocation_Basic() {
+            var snippet0 = @"string s0 = ""hello"" + 0.ToString() + ""world"" + 1.ToString();";
+            var snippet1 = @"string s2 = ""ohell"" + 2.ToString() + ""world"" + 3.ToString() + 4.ToString();";
 
             var analyser = new ConcatenationAllocationAnalyzer();
-            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
+            var info0 = ProcessCode(analyser, snippet0, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
+            var info1 = ProcessCode(analyser, snippet1, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
 
-            Assert.AreEqual(1, info.Allocations.Count(d => d.Id == ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule.Id));
-            Assert.AreEqual(4, info.Allocations.Count(d => d.Id == ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id));
-
-            //### CODE ### 5.ToString() + 1 + 8.ToString()
-            //*** Diagnostic: (9,45): warning HeapAnalyzerBoxingRule: Value type (char) is being boxed to a reference type for a string concatenation.
-            AssertEx.ContainsDiagnostic(info.Allocations, id: ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule.Id, line: 3, character: 33);
-            // Diagnostic: (9,43): warning HeapAnalyzerStringConcatRule: Considering using StringBuilder
-            AssertEx.ContainsDiagnostic(info.Allocations, id: ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id, line: 3, character: 31);
-            // Diagnostic: (9,49): warning HeapAnalyzerStringConcatRule: Considering using StringBuilder
-            AssertEx.ContainsDiagnostic(info.Allocations, id: ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id, line: 3, character: 35);
-
-            //### CODE ### 5.ToString() + ":" + 8.ToString()
-            // Diagnostic: (10,46): warning HeapAnalyzerStringConcatRule: Considering using StringBuilder
-            AssertEx.ContainsDiagnostic(info.Allocations, id: ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id, line: 4, character: 34);
-            // Diagnostic: (10,52): warning HeapAnalyzerStringConcatRule: Considering using StringBuilder
-            AssertEx.ContainsDiagnostic(info.Allocations, id: ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id, line: 4, character: 40);
+            Assert.AreEqual(0, info0.Allocations.Count(d => d.Id == ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id));
+            Assert.AreEqual(1, info1.Allocations.Count(d => d.Id == ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id));
+            AssertEx.ContainsDiagnostic(info1.Allocations, id: ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id, line: 1, character: 13);
         }
 
         [TestMethod]
