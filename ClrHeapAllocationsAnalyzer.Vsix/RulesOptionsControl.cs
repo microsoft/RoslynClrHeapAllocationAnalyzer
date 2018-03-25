@@ -8,22 +8,25 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
     public partial class RulesOptionsControl : UserControl
     {
         private readonly BindingSource bindingSource = new BindingSource();
+        private readonly IDictionary<string, DiagnosticSeverity> newSeverities = new Dictionary<string, DiagnosticSeverity>();
 
         public RulesOptionsControl()
         {
             InitializeComponent();
             InitializeGridView();
-
         }
 
-        public IEnumerable<Common.AllocationRuleDescription> GetDescriptions()
-        {
-            foreach (AllocationRuleDescription d in bindingSource)
-            {
-                yield return d.ToFullDescription();
+        public IEnumerable<Common.AllocationRuleDescription> GetDescriptions() {
+            foreach (AllocationRuleDescription d in bindingSource) {
+                Console.WriteLine(d.Id + newSeverities.ContainsKey(d.Id));
+                if (newSeverities.ContainsKey(d.Id)) {
+                    yield return d.ToFullDescription(newSeverities[d.Id]);
+                } else {
+                    yield return d.ToFullDescription();
+                }
             }
         }
-
+       
         private void InitializeGridView()
         {
             foreach (var d in AllocationRules.GetDescriptions())
@@ -57,8 +60,25 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
             combo.FillWeight = 0.20f;
             combo.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             gvRules.Columns.Add(combo);
+
+            gvRules.EditingControlShowing += GridView_EditingControlShowing;
         }
 
+        private void GridView_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e) {
+            var comboBox = e.Control as ComboBox;
+            if (comboBox == null) return;
+            int row = gvRules.CurrentCell.RowIndex;
+            var ruleDescription = bindingSource[row] as AllocationRuleDescription;
+            comboBox.Tag = ruleDescription.Id;
+            comboBox.SelectedIndexChanged += ComboBox_SelectedIndexChanged;
+        }
+
+        private void ComboBox_SelectedIndexChanged(object sender, EventArgs e) {
+            var comboBox = sender as ComboBox;
+            if (comboBox.SelectedValue == null) return;
+            newSeverities[comboBox.Tag as string] = (DiagnosticSeverity)comboBox.SelectedValue;
+        }
+        
         /// <summary>
         /// Mutable version used for showing in the UI.
         /// </summary>
@@ -81,6 +101,10 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
 
             public Common.AllocationRuleDescription ToFullDescription() {
                 return new Common.AllocationRuleDescription(Id, Title, MessageFormat, Severity, HelpLinkUri);
+            }
+
+            public Common.AllocationRuleDescription ToFullDescription(DiagnosticSeverity newSeverity) {
+                return new Common.AllocationRuleDescription(Id, Title, MessageFormat, newSeverity, HelpLinkUri);
             }
 
             public static AllocationRuleDescription FromFullDescription(Common.AllocationRuleDescription d) {
