@@ -56,6 +56,11 @@ namespace ClrHeapAllocationAnalyzer.Common {
 
         public static EnabledRules GetEnabled(IEnumerable<string> ruleIds)
         {
+            if (!settings.Enabled)
+            {
+                return EnabledRules.None;
+            }
+
             Dictionary<string, DiagnosticDescriptor> result = null;
             foreach (var ruleId in ruleIds) {
                 if (IsEnabled(ruleId)) {
