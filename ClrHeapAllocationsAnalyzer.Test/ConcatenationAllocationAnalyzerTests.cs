@@ -25,12 +25,28 @@ namespace ClrHeapAllocationAnalyzer.Test
             //AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id, line: 3, character: 33); //TODO
             //AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.StringConcatenationAllocationRule.Id, line: 3, character: 31); //TODO
             //AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.StringConcatenationAllocationRule.Id, line: 3, character: 37); //TODO
-
             AssertEx.ContainsDiagnostic(info1.Allocations, id: AllocationRules.StringConcatenationAllocationRule.Id, line: 1, character: 13);
             //AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.StringConcatenationAllocationRule.Id, line: 4, character: 34); //TODO
             //AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.StringConcatenationAllocationRule.Id, line: 4, character: 40); //TODO
         }
 
+        [TestMethod]
+        public void ConcatenationAllocation_DoNotWarnForOptimizedValueTypes() {
+            var snippets = new[]
+            {
+                @"string s0 = nameof(System.String) + '-';",
+                @"string s0 = nameof(System.String) + true;",
+                @"string s0 = nameof(System.String) + new System.IntPtr();",
+                @"string s0 = nameof(System.String) + new System.UIntPtr();"
+            };
+
+            var analyser = new ConcatenationAllocationAnalyzer();
+            foreach (var snippet in snippets) {
+                var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
+                Assert.AreEqual(0, info.Allocations.Count(x => x.Id == ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule.Id));
+            }
+        }
+        
         [TestMethod]
         public void ConcatenationAllocation_DoNotWarnForConst() {
             var snippets = new[]

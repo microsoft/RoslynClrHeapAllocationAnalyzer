@@ -7,8 +7,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
-namespace ClrHeapAllocationAnalyzer
-{
+namespace ClrHeapAllocationAnalyzer {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class ConcatenationAllocationAnalyzer : AllocationAnalyzer {
         protected override SyntaxKind[] Expressions => new[] { SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression };
@@ -21,8 +20,7 @@ namespace ClrHeapAllocationAnalyzer
                 AllocationRules.GetDescriptor(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id)
             );
 
-        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, EnabledRules rules)
-        {
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context, EnabledRules rules) {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
@@ -31,39 +29,34 @@ namespace ClrHeapAllocationAnalyzer
             var binaryExpressions = node.DescendantNodesAndSelf().OfType<BinaryExpressionSyntax>().Reverse(); // need inner most expressions
 
             int stringConcatenationCount = 0;
-            foreach (var binaryExpression in binaryExpressions)
-            {
-                if (binaryExpression.Left == null || binaryExpression.Right == null)
-                {
+            foreach (var binaryExpression in binaryExpressions) {
+                if (binaryExpression.Left == null || binaryExpression.Right == null) {
                     continue;
                 }
 
                 bool isConstant = semanticModel.GetConstantValue(binaryExpression, cancellationToken).HasValue;
-                if (isConstant)
-                {
+                if (isConstant) {
                     continue;
                 }
 
                 var left = semanticModel.GetTypeInfo(binaryExpression.Left, cancellationToken);
                 var right = semanticModel.GetTypeInfo(binaryExpression.Right, cancellationToken);
-                
-                if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id))
-                {
-                    CheckForTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id), binaryExpression.Left, left, reportDiagnostic, filePath);
-                    CheckForTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id), binaryExpression.Right, right, reportDiagnostic, filePath);
+
+                if (rules.IsEnabled(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id)) {
+                    var leftConversion = semanticModel.GetConversion(binaryExpression.Left, cancellationToken);
+                    var rightConversion = semanticModel.GetConversion(binaryExpression.Right, cancellationToken);
+                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id), left, leftConversion, reportDiagnostic, binaryExpression.Left.GetLocation(), filePath);
+                    CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id), right, rightConversion, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
                 }
 
                 // regular string allocation
-                if (rules.IsEnabled(AllocationRules.StringConcatenationAllocationRule.Id))
-                {
-                    if (left.Type?.SpecialType == SpecialType.System_String || right.Type?.SpecialType == SpecialType.System_String)
-                    {
+                if (rules.IsEnabled(AllocationRules.StringConcatenationAllocationRule.Id)) {
+                    if (left.Type?.SpecialType == SpecialType.System_String || right.Type?.SpecialType == SpecialType.System_String) {
                         stringConcatenationCount++;
                     }
                 }
 
-                if (stringConcatenationCount > 3)
-                {
+                if (stringConcatenationCount > 3) {
                     var rule = rules.Get(AllocationRules.StringConcatenationAllocationRule.Id);
                     reportDiagnostic(Diagnostic.Create(rule, node.GetLocation(), EmptyMessageArgs));
                     HeapAllocationAnalyzerEventSource.Logger.StringConcatenationAllocation(filePath);
@@ -71,11 +64,16 @@ namespace ClrHeapAllocationAnalyzer
             }
         }
 
-        private static void CheckForTypeConversion(DiagnosticDescriptor rule, ExpressionSyntax expression, TypeInfo typeInfo, Action<Diagnostic> reportDiagnostic, string filePath)
-        {
-            if (typeInfo.Type != null && typeInfo.Type.IsValueType && typeInfo.ConvertedType != null && !typeInfo.ConvertedType.IsValueType)
-            {
-                reportDiagnostic(Diagnostic.Create(rule, expression.GetLocation(), new object[] { typeInfo.Type.ToDisplayString() }));
+        private static void CheckTypeConversion(DiagnosticDescriptor rule, TypeInfo typeInfo, Conversion conversionInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath) {
+            bool IsOptimizedValueType(ITypeSymbol type) {
+                return type.SpecialType == SpecialType.System_Boolean ||
+                       type.SpecialType == SpecialType.System_Char ||
+                       type.SpecialType == SpecialType.System_IntPtr ||
+                       type.SpecialType == SpecialType.System_UIntPtr;
+            }
+
+            if (conversionInfo.IsBoxing && !IsOptimizedValueType(typeInfo.Type)) {
+                reportDiagnostic(Diagnostic.Create(rule, location, new[] { typeInfo.Type.ToDisplayString() }));
                 HeapAllocationAnalyzerEventSource.Logger.BoxingAllocationInStringConcatenation(filePath);
             }
         }
