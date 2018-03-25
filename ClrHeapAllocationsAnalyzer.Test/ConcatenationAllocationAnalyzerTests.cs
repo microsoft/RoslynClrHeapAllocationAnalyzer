@@ -17,17 +17,10 @@ namespace ClrHeapAllocationAnalyzer.Test
             var analyser = new ConcatenationAllocationAnalyzer();
             var info0 = ProcessCode(analyser, snippet0, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
             var info1 = ProcessCode(analyser, snippet1, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
-            //Assert.AreEqual(1, info.Allocations.Count(d => d.Id == AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id)); //TODO
-            //Assert.AreEqual(4, info.Allocations.Count(d => d.Id == AllocationRules.StringConcatenationAllocationRule.Id)); //TODO
        
             Assert.AreEqual(0, info0.Allocations.Count(d => d.Id == AllocationRules.StringConcatenationAllocationRule.Id));
             Assert.AreEqual(1, info1.Allocations.Count(d => d.Id == AllocationRules.StringConcatenationAllocationRule.Id));
-            //AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ValueTypeToReferenceTypeInAStringConcatenationRule.Id, line: 3, character: 33); //TODO
-            //AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.StringConcatenationAllocationRule.Id, line: 3, character: 31); //TODO
-            //AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.StringConcatenationAllocationRule.Id, line: 3, character: 37); //TODO
             AssertEx.ContainsDiagnostic(info1.Allocations, id: AllocationRules.StringConcatenationAllocationRule.Id, line: 1, character: 13);
-            //AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.StringConcatenationAllocationRule.Id, line: 4, character: 34); //TODO
-            //AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.StringConcatenationAllocationRule.Id, line: 4, character: 40); //TODO
         }
 
         [TestMethod]

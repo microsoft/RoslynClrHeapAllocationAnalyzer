@@ -159,8 +159,6 @@ public IEnumerable<int> GetItemsNoAllocation()
 
             // Diagnostic: (14,18): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
             AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ValueTypeToReferenceTypeConversionRule.Id, line: 14, character: 18);
-            // TODO this is a false positive
-            // Diagnostic: (8,22): warning HeapAnalyzerBoxingRule: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable
         }
 
         [TestMethod]
@@ -316,8 +314,6 @@ public struct MyStruct
             AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.MethodGroupAllocationRule.Id, line: 21, character: 38);
             // Diagnostic: (21,38): warning HeapAnalyzerDelegateOnStructRule: Struct instance method being used for delegate creation, this will result in a boxing instruction
             AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.DelegateOnStructInstanceRule.Id, line: 21, character: 38);
-            // TODO this is a false positive
-            // Diagnostic: (22,63): warning HeapAnalyzerDelegateOnStructRule: Struct instance method being used for delegate creation, this will result in a boxing instruction
         }
 
         [TestMethod]
