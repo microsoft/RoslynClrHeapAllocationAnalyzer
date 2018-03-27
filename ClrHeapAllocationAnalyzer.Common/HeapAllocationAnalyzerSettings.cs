@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.CodeAnalysis;
-using Microsoft.VisualStudio.Settings;
 
 namespace ClrHeapAllocationAnalyzer.Common {
     public class HeapAllocationAnalyzerSettings : IHeapAllocationAnalyzerSettings
     {
         private const string CollectionPath = "HeapAllocationAnalyzer";
 
-        private readonly WritableSettingsStore settingsStore;
+        private readonly IWritableSettingsStore settingsStore;
 
         private bool enabled;
 
@@ -68,7 +67,7 @@ namespace ClrHeapAllocationAnalyzer.Common {
             OnSettingsChanged();
         }
 
-        public HeapAllocationAnalyzerSettings(WritableSettingsStore settingsStore)
+        public HeapAllocationAnalyzerSettings(IWritableSettingsStore settingsStore)
         {
             this.settingsStore = settingsStore;
             LoadSettings();

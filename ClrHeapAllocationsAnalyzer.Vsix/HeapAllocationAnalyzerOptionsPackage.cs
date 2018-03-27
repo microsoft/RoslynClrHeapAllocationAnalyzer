@@ -34,7 +34,7 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
 
             SettingsManager settingsManager = new ShellSettingsManager(ServiceProvider.GlobalProvider);
             WritableSettingsStore settingsStore = settingsManager.GetWritableSettingsStore(SettingsScope.UserSettings);
-            AllocationRules.Settings = new HeapAllocationAnalyzerSettings(settingsStore);
+            AllocationRules.Settings = new HeapAllocationAnalyzerSettings(new SettingsStoreWrapper(settingsStore));
         }
     }
 }
