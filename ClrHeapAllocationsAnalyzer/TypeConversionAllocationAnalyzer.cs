@@ -21,7 +21,8 @@ namespace ClrHeapAllocationAnalyzer
             SyntaxKind.ConditionalExpression,
             SyntaxKind.ForEachStatement,
             SyntaxKind.EqualsValueClause,
-            SyntaxKind.Argument
+            SyntaxKind.Argument,
+            SyntaxKind.ArrowExpressionClause
         };
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
@@ -41,7 +42,7 @@ namespace ClrHeapAllocationAnalyzer
             var cancellationToken = context.CancellationToken;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
             string filePath = node.SyntaxTree.FilePath;
-            bool assignedToReadonlyFieldOrProperty = 
+            bool assignedToReadonlyFieldOrProperty =
                 (context.ContainingSymbol as IFieldSymbol)?.IsReadOnly == true ||
                 (context.ContainingSymbol as IPropertySymbol)?.IsReadOnly == true;
 
@@ -95,6 +96,13 @@ namespace ClrHeapAllocationAnalyzer
             if (isValueTypeToReferenceRuleEnabled && node is CastExpressionSyntax)
             {
                 CastExpressionCheck(valueTypeToReferenceRule, node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                return;
+            }
+
+            // object Foo => 1
+            if (node is ArrowExpressionClauseSyntax)
+            {
+                ArrowExpressionCheck(rules, node, semanticModel, assignedToReadonlyFieldOrProperty, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
         }
@@ -216,8 +224,20 @@ namespace ClrHeapAllocationAnalyzer
                 }
             }
         }
-        
-        private static void CheckTypeConversion(DiagnosticDescriptor rule, Conversion conversionInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath) { 
+
+
+        private static void ArrowExpressionCheck(EnabledRules rules, SyntaxNode node, SemanticModel semanticModel, bool isAssignmentToReadonly, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        {
+            var syntax = node as ArrowExpressionClauseSyntax;
+
+            var typeInfo = semanticModel.GetTypeInfo(syntax.Expression, cancellationToken);
+            var conversionInfo = semanticModel.GetConversion(syntax.Expression, cancellationToken);
+            CheckTypeConversion(rules.Get(AllocationRules.ValueTypeToReferenceTypeConversionRule.Id), conversionInfo, reportDiagnostic, syntax.Expression.GetLocation(), filePath);
+            CheckDelegateCreation(rules, syntax, typeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, syntax.Expression.GetLocation(), filePath, cancellationToken);
+        }
+
+        private static void CheckTypeConversion(DiagnosticDescriptor rule, Conversion conversionInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
+        {
             if (conversionInfo.IsBoxing)
             {
                 reportDiagnostic(Diagnostic.Create(rule, location, EmptyMessageArgs));
@@ -242,8 +262,7 @@ namespace ClrHeapAllocationAnalyzer
                 {
                     if (rules.IsEnabled(AllocationRules.MethodGroupAllocationRule.Id) && node.IsKind(SyntaxKind.IdentifierName))
                     {
-                        if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol is IMethodSymbol)
-                        {
+                        if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol is IMethodSymbol) {
                             reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.MethodGroupAllocationRule.Id), location, EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                         }
@@ -263,6 +282,14 @@ namespace ClrHeapAllocationAnalyzer
                                 reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.MethodGroupAllocationRule.Id), location, EmptyMessageArgs));
                                 HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                             }
+                        }
+                    }
+                    else if (node is ArrowExpressionClauseSyntax)
+                    {
+                        var arrowClause = node as ArrowExpressionClauseSyntax;
+                        if (semanticModel.GetSymbolInfo(arrowClause.Expression, cancellationToken).Symbol is IMethodSymbol) {
+                            reportDiagnostic(Diagnostic.Create(rules.Get(AllocationRules.MethodGroupAllocationRule.Id), location, EmptyMessageArgs));
+                            HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                         }
                     }
                 }

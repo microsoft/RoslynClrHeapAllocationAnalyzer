@@ -102,7 +102,7 @@ namespace ClrHeapAllocationAnalyzer
                 }
             }
         }
-        
+
         private static void ClosureCaptureDataFlowAnalysis(DiagnosticDescriptor captureRule, DataFlowAnalysis flow, Action<Diagnostic> reportDiagnostic, Location location)
         {
             if (flow?.Captured.Length <= 0)
@@ -115,7 +115,7 @@ namespace ClrHeapAllocationAnalyzer
                 if (capture.Name != null && capture.Locations != null)
                 {
                     foreach (var l in capture.Locations)
-                    { 
+                    {
                         if (captureRule.IsEnabledByDefault)
                         {
                             reportDiagnostic(Diagnostic.Create(captureRule, l, EmptyMessageArgs));

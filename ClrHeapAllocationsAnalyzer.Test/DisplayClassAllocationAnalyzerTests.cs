@@ -11,7 +11,7 @@ namespace ClrHeapAllocationAnalyzer.Test
         [TestMethod]
         public void DisplayClassAllocation_AnonymousMethodExpressionSyntax()
         {
-            var sampleProgram = 
+            var sampleProgram =
 @"using System;
 
 class Test

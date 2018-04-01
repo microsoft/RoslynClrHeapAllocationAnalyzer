@@ -57,7 +57,7 @@ foreach (var i in (IEnumerable<int>)intData) // Allocations (line 24)
 @"using System.Collections.Generic;
 using System;
 
-// These next 3 are from the YouTube video 
+// These next 3 are from the YouTube video
 foreach (object a in new[] { 1, 2, 3}) // Allocations 'new [] { 1. 2, 3}'
 {
     Console.WriteLine(a.ToString());

@@ -15,12 +15,12 @@ namespace ClrHeapAllocationAnalyzer.Test {
             {
             return intValues.ContainsKey(propertyName) ? intValues[propertyName] : defaultValue;
         }
-        
+
         public bool CollectionExists(string collectionPath)
         {
             return true;
         }
-        
+
         public void SetBoolean(string collectionPath, string propertyName, bool value)
         {
             boolValues[propertyName] = value;
@@ -30,9 +30,9 @@ namespace ClrHeapAllocationAnalyzer.Test {
         {
             intValues[propertyName] = value;
         }
-        
+
         public void CreateCollection(string collectionPath)
-        { 
+        {
         }
     }
 }

@@ -26,7 +26,7 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
                 }
             }
         }
-       
+
         private void InitializeGridView()
         {
             foreach (var d in AllocationRules.GetDescriptions())
@@ -38,7 +38,7 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
             gvRules.AutoSize = true;
             gvRules.DataSource = bindingSource;
             gvRules.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        
+
             DataGridViewColumn column = new DataGridViewTextBoxColumn();
             column.DataPropertyName = "Id";
             column.Name = "ID";
@@ -78,7 +78,7 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
             if (comboBox.SelectedValue == null) return;
             newSeverities[comboBox.Tag as string] = (DiagnosticSeverity)comboBox.SelectedValue;
         }
-        
+
         /// <summary>
         /// Mutable version used for showing in the UI.
         /// </summary>

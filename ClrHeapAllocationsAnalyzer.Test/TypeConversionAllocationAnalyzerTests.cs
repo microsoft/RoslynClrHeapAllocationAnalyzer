@@ -429,7 +429,7 @@ var f2 = (object)""5""; // NO Allocation
 
             var info0 = ProcessCode(analyzer, programWithoutImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
             AssertEx.ContainsDiagnostic(info0.Allocations, id: AllocationRules.ValueTypeToReferenceTypeConversionRule.Id, line: 6, character: 50);
-            
+
             var info1 = ProcessCode(analyzer, programWithImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
             Assert.AreEqual(0, info1.Allocations.Count);
         }
@@ -488,6 +488,74 @@ var f2 = (object)""5""; // NO Allocation
                 var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
                 Assert.AreEqual(1, info.Allocations.Count(x => x.Id == AllocationRules.ReadonlyMethodGroupAllocationRule.Id), snippet);
             }
+        }
+
+        [TestMethod]
+        public void TypeConversionAllocation_ExpressionBodiedPropertyBoxing_WithBoxing() {
+            const string snippet = @"
+                class Program
+                {
+                    object Obj => 1;
+                }
+            ";
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(
+                SyntaxKind.ArrowExpressionClause));
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.ValueTypeToReferenceTypeConversionRule.Id, line: 4, character: 35);
+        }
+
+        [TestMethod]
+        public void TypeConversionAllocation_ExpressionBodiedPropertyBoxing_WithoutBoxing() {
+            const string snippet = @"
+                class Program
+                {
+                    object Obj => 1.ToString();
+                }
+            ";
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(
+                SyntaxKind.ArrowExpressionClause));
+            Assert.AreEqual(0, info.Allocations.Count);
+        }
+
+        [TestMethod]
+        public void TypeConversionAllocation_ExpressionBodiedPropertyDelegate() {
+            const string snippet = @"
+                using System;
+                class Program
+                {
+                    void Function(int i) { }
+
+                    Action<int> Obj => Function;
+                }
+            ";
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(
+                SyntaxKind.ArrowExpressionClause));
+            AssertEx.ContainsDiagnostic(info.Allocations, id: AllocationRules.MethodGroupAllocationRule.Id, line: 7, character: 40);
+        }
+
+        [TestMethod]
+        [Description("Tests that an explicit delegate creation does not trigger HAA0603. " +
+            "It should be handled by HAA0502.")]
+        public void TypeConversionAllocation_ExpressionBodiedPropertyExplicitDelegate_NoWarning() {
+            const string snippet = @"
+                using System;
+                class Program
+                {
+                    void Function(int i) { }
+
+                    Action<int> Obj => new Action<int>(Function);
+                }
+            ";
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(
+                SyntaxKind.ArrowExpressionClause));
+            Assert.AreEqual(0, info.Allocations.Count);
         }
     }
 }
