@@ -30,13 +30,17 @@ namespace ClrHeapAllocationAnalyzer.Common {
 
                 settings = value;
 
+                // We now have access to settings. Load the severities for the
+                // rules.
+                LoadSeverities();
+
                 if (settings != null)
                 {
                     settings.SettingsChanged += OnSettingsChanged;
                 }
             }
         }
-        
+
         public static DiagnosticDescriptor GetDescriptor(string ruleId)
         {
             if (!Descriptions.ContainsKey(ruleId))
@@ -45,8 +49,14 @@ namespace ClrHeapAllocationAnalyzer.Common {
             }
 
             AllocationRuleDescription d = Descriptions[ruleId];
-            bool isEnabled = d.Severity != DiagnosticSeverity.Hidden;
-            return new DiagnosticDescriptor(d.Id, d.Title, d.MessageFormat, "Performance", d.Severity, isEnabled, helpLinkUri: d.HelpLinkUri);
+            DiagnosticSeverity severity = d.Severity;
+            if (settings != null)
+            {
+                severity = settings.GetSeverity(d);
+            }
+             
+            bool isEnabled = severity != DiagnosticSeverity.Hidden;
+            return new DiagnosticDescriptor(d.Id, d.Title, d.MessageFormat, "Performance", severity, isEnabled, helpLinkUri: d.HelpLinkUri);
         }
 
         public static IEnumerable<AllocationRuleDescription> GetDescriptions()
@@ -86,12 +96,15 @@ namespace ClrHeapAllocationAnalyzer.Common {
 
         private static void OnSettingsChanged(object sender, EventArgs eventArgs)
         {
+            LoadSeverities();
+        }
+
+        private static void LoadSeverities()
+        {
             var descriptionsCopy = new Dictionary<string, AllocationRuleDescription>(Descriptions);
-            foreach (var d in descriptionsCopy)
-            {
+            foreach (var d in descriptionsCopy) {
                 DiagnosticSeverity severity = Settings.GetSeverity(d.Key, d.Value.Severity);
-                if (Descriptions[d.Key].Severity != severity)
-                {
+                if (Descriptions[d.Key].Severity != severity) {
                     Descriptions[d.Key] = Descriptions[d.Key].WithSeverity(severity);
                 }
             }

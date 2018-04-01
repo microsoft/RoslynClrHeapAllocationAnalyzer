@@ -1,7 +1,7 @@
 ﻿namespace ClrHeapAllocationAnalyzer.Common {
     /// <summary>
     /// Exposes methods for getting and setting settings values.
-    /// 
+    ///
     /// Analogous to the Microsoft.VisualStudio.Settings.WritableSettingsStore,
     /// but with fewer exposed methods.
     /// </summary>

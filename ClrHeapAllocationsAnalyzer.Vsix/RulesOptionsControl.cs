@@ -38,7 +38,7 @@ namespace ClrHeapAllocationAnalyzer.Vsix {
             gvRules.AutoSize = true;
             gvRules.DataSource = bindingSource;
             gvRules.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-
+        
             DataGridViewColumn column = new DataGridViewTextBoxColumn();
             column.DataPropertyName = "Id";
             column.Name = "ID";

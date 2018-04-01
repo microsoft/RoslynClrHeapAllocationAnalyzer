@@ -14,8 +14,8 @@ namespace ClrHeapAllocationAnalyzer
     public sealed class CallSiteImplicitAllocationAnalyzer : AllocationAnalyzer
     {
         protected override SyntaxKind[] Expressions => new[] { SyntaxKind.InvocationExpression };
-    
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => 
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(
                 AllocationRules.GetDescriptor(AllocationRules.ParamsParameterRule.Id),
                 AllocationRules.GetDescriptor(AllocationRules.ValueTypeNonOverridenCallRule.Id)
@@ -36,7 +36,7 @@ namespace ClrHeapAllocationAnalyzer
             if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is IMethodSymbol methodInfo)
             {
                 if (rules.IsEnabled(AllocationRules.ValueTypeNonOverridenCallRule.Id))
-                { 
+                {
                     if (!methodInfo.IsStatic)
                     {
                         CheckNonOverridenMethodOnStruct(rules.Get(AllocationRules.ValueTypeNonOverridenCallRule.Id), methodInfo, reportDiagnostic, invocationExpression, filePath);
@@ -52,7 +52,7 @@ namespace ClrHeapAllocationAnalyzer
                             CheckParam(rules.Get(AllocationRules.ParamsParameterRule.Id), invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
                         }
                     }
-                }  
+                }
             }
         }
 

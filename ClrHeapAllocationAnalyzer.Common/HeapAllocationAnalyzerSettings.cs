@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 
 namespace ClrHeapAllocationAnalyzer.Common {
@@ -10,9 +11,9 @@ namespace ClrHeapAllocationAnalyzer.Common {
 
         private readonly IWritableSettingsStore settingsStore;
 
-        private bool enabled;
+        private bool enabled = true;
 
-        private readonly IDictionary<string, DiagnosticSeverity> ruleSeverities = new Dictionary<string, DiagnosticSeverity>();
+        private readonly IDictionary<string, DiagnosticSeverity> ruleSeverities;
 
         public event EventHandler SettingsChanged;
 
@@ -40,7 +41,7 @@ namespace ClrHeapAllocationAnalyzer.Common {
                 return defaultSeverity;
             }
         }
-        
+
         public DiagnosticSeverity GetSeverity(AllocationRuleDescription defaultDescription)
         {
             return GetSeverity(defaultDescription.Id, defaultDescription.Severity);
@@ -67,9 +68,10 @@ namespace ClrHeapAllocationAnalyzer.Common {
             OnSettingsChanged();
         }
 
-        public HeapAllocationAnalyzerSettings(IWritableSettingsStore settingsStore)
+        public HeapAllocationAnalyzerSettings(IWritableSettingsStore store, IEnumerable<AllocationRuleDescription> allRules = null)
         {
-            this.settingsStore = settingsStore;
+            settingsStore = store;
+            ruleSeverities = allRules?.ToDictionary(x => x.Id, x => x.Severity) ?? new Dictionary<string, DiagnosticSeverity>();
             LoadSettings();
         }
 
@@ -86,7 +88,8 @@ namespace ClrHeapAllocationAnalyzer.Common {
             {
                 Enabled = settingsStore.GetBoolean(CollectionPath, "Enabled", true);
 
-                foreach (var rule in ruleSeverities)
+                var ruleSeveritiesCopy = new Dictionary<string, DiagnosticSeverity>(ruleSeverities);
+                foreach (var rule in ruleSeveritiesCopy)
                 {
                     int severity = settingsStore.GetInt32(CollectionPath, rule.Key, (int)rule.Value);
                     ruleSeverities[rule.Key] = (DiagnosticSeverity)severity;
