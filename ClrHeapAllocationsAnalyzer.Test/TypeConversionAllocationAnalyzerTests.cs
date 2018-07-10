@@ -436,7 +436,7 @@ var f2 = (object)""5""; // NO Allocation
             AssertEx.ContainsDiagnostic(info0.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 6, character: 50);
             
             var info1 = ProcessCode(analyzer, programWithImplicitCastOperator, ImmutableArray.Create(SyntaxKind.Argument));
-            Assert.AreEqual(0, info1.Allocations.Count, info1.Allocations[0].Id);
+            Assert.AreEqual(0, info1.Allocations.Count);
         }
 
 

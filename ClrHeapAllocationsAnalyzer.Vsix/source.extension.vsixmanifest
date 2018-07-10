@@ -4,14 +4,14 @@
     <Identity Id="ClrHeapAllocationAnalyzer..f21077b6-a9d3-4fb6-81a3-b46dfd105fd4" Version="1.0" Language="en-US" Publisher="MJSABBY"/>
     <DisplayName>Clr Heap Allocation Analyzer</DisplayName>
     <Description xml:space="preserve">Clr Heap Allocation Analyzer is a Roslyn based Diagnostic Analyzer that is able to detect most allocations in code in the local method and bring them to your attention in Visual Studio. It can detect subtle allocations caused by value type boxing, closure captures, delegate instantiations, etc.</Description>
-    <MoreInfo>https://github.com/mjsabby/RoslynClrHeapAllocationAnalyzer</MoreInfo>
+    <MoreInfo>https://github.com/Microsoft/RoslynClrHeapAllocationAnalyzer</MoreInfo>
     <License>LICENSE.txt</License>
     <Tags>roslyn clr allocations boxing closure display performance</Tags>
   </Metadata>
   <Installation>
-    <InstallationTarget Version="[15.0,16.0)" Id="Microsoft.VisualStudio.Pro" />
-    <InstallationTarget Version="[15.0,16.0)" Id="Microsoft.VisualStudio.Community" />
-    <InstallationTarget Version="[15.0,16.0)" Id="Microsoft.VisualStudio.Enterprise" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[15.0,)" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[15.0,)" />
+    <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[15.0,)" />
   </Installation>
   <Dependencies>
     <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.6,)" />
@@ -21,6 +21,6 @@
     <Asset Type="Microsoft.VisualStudio.Analyzer" d:Source="Project" d:ProjectName="ClrHeapAllocationAnalyzer" Path="|ClrHeapAllocationAnalyzer|" />
   </Assets>
   <Prerequisites>
-    <Prerequisite Id="Microsoft.VisualStudio.Component.Roslyn.LanguageServices" Version="[15.0.26208.0,16.0)" DisplayName="C# and Visual Basic" />
+    <Prerequisite Id="Microsoft.VisualStudio.Component.Roslyn.LanguageServices" Version="[15.0,16.0)" DisplayName="Roslyn Language Services" />
   </Prerequisites>
 </PackageManifest>
