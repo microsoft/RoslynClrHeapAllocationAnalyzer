@@ -477,6 +477,27 @@ var f2 = (object)""5""; // NO Allocation
         }
 
         [TestMethod]
+        public void TypeConversionAllocation_InterpolatedStringWithInt_BoxingWarning() {
+            var sampleProgram = @"string s = $""{1}"";";
+
+            var analyser = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.Interpolation));
+
+            Assert.AreEqual(1, info.Allocations.Count);
+            AssertEx.ContainsDiagnostic(info.Allocations, id: TypeConversionAllocationAnalyzer.ValueTypeToReferenceTypeConversionRule.Id, line: 1, character: 15);
+        }
+
+        [TestMethod]
+        public void TypeConversionAllocation_InterpolatedStringWithString_NoWarning() {
+            var sampleProgram = @"string s = $""{1.ToString()}"";";
+
+            var analyser = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.Interpolation));
+
+            Assert.AreEqual(0, info.Allocations.Count);
+        }
+
+        [TestMethod]
         public void TypeConversionAllocation_DelegateAssignmentToReadonly_DoNotWarn()
         {
             string[] snippets =

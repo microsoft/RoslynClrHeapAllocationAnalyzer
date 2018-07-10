@@ -37,6 +37,7 @@
                 SyntaxKind.ConditionalExpression,
                 SyntaxKind.ForEachStatement,
                 SyntaxKind.EqualsValueClause,
+                SyntaxKind.Interpolation,
                 SyntaxKind.Argument,
                 SyntaxKind.ArrowExpressionClause
             };
@@ -94,6 +95,12 @@
             if (node is ConditionalExpressionSyntax)
             {
                 ConditionalExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                return;
+            }
+
+            // string a = $"{1}";
+            if (node is InterpolationSyntax) {
+                InterpolationCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
 
@@ -170,6 +177,16 @@
                 CheckTypeConversion(assignmentExprConversionInfo, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath);
                 CheckDelegateCreation(binaryExpression.Right, assignmentExprTypeInfo, semanticModel, isAssignmentToReadonly, reportDiagnostic, binaryExpression.Right.GetLocation(), filePath, cancellationToken);
                 return;
+            }
+        }
+
+        private static void InterpolationCheck(SyntaxNode node, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        {
+            var interpolation = node as InterpolationSyntax;
+            var typeInfo = semanticModel.GetTypeInfo(interpolation.Expression, cancellationToken);
+            if (typeInfo.Type?.IsValueType == true) {
+                reportDiagnostic(Diagnostic.Create(ValueTypeToReferenceTypeConversionRule, interpolation.Expression.GetLocation(), EmptyMessageArgs));
+                HeapAllocationAnalyzerEventSource.Logger.BoxingAllocation(filePath);
             }
         }
 
