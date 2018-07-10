@@ -38,7 +38,8 @@
                 SyntaxKind.ForEachStatement,
                 SyntaxKind.EqualsValueClause,
                 SyntaxKind.Interpolation,
-                SyntaxKind.Argument
+                SyntaxKind.Argument,
+                SyntaxKind.ArrowExpressionClause
             };
             context.RegisterSyntaxNodeAction(AnalyzeNode, kinds);
         }
@@ -107,6 +108,13 @@
             if (node is CastExpressionSyntax)
             {
                 CastExpressionCheck(node, semanticModel, reportDiagnostic, filePath, cancellationToken);
+                return;
+            }
+
+            // object Foo => 1
+            if (node is ArrowExpressionClauseSyntax)
+            {
+                ArrowExpressionCheck(node, semanticModel, assignedToReadonlyFieldOrProperty, reportDiagnostic, filePath, cancellationToken);
                 return;
             }
         }
@@ -227,6 +235,18 @@
             }
         }
 
+
+        private static void ArrowExpressionCheck(SyntaxNode node, SemanticModel semanticModel, bool isAssignmentToReadonly, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
+        {
+            var syntax = node as ArrowExpressionClauseSyntax;
+
+            var typeInfo = semanticModel.GetTypeInfo(syntax.Expression, cancellationToken);
+            var conversionInfo = semanticModel.GetConversion(syntax.Expression, cancellationToken);
+            CheckTypeConversion(conversionInfo, reportDiagnostic, syntax.Expression.GetLocation(), filePath);
+            CheckDelegateCreation(syntax, typeInfo, semanticModel, false, reportDiagnostic,
+                syntax.Expression.GetLocation(), filePath, cancellationToken);
+        }
+
         private static void CheckTypeConversion(Conversion conversionInfo, Action<Diagnostic> reportDiagnostic, Location location, string filePath)
         {
             if (conversionInfo.IsBoxing)
@@ -253,8 +273,7 @@
                 {
                     if (node.IsKind(SyntaxKind.IdentifierName))
                     {
-                        if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol is IMethodSymbol)
-                        {
+                        if (semanticModel.GetSymbolInfo(node, cancellationToken).Symbol is IMethodSymbol) {
                             reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
                             HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                         }
@@ -274,6 +293,14 @@
                                 reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
                                 HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                             }
+                        }
+                    } 
+                    else if (node is ArrowExpressionClauseSyntax)
+                    {
+                        var arrowClause = node as ArrowExpressionClauseSyntax;
+                        if (semanticModel.GetSymbolInfo(arrowClause.Expression, cancellationToken).Symbol is IMethodSymbol) {
+                            reportDiagnostic(Diagnostic.Create(MethodGroupAllocationRule, location, EmptyMessageArgs));
+                            HeapAllocationAnalyzerEventSource.Logger.MethodGroupAllocation(filePath);
                         }
                     }
                 }

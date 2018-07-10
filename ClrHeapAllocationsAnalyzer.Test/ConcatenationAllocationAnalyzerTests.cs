@@ -19,10 +19,26 @@ namespace ClrHeapAllocationsAnalyzer.Test
 
             Assert.AreEqual(0, info0.Allocations.Count(d => d.Id == ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id));
             Assert.AreEqual(1, info1.Allocations.Count(d => d.Id == ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id));
-
             AssertEx.ContainsDiagnostic(info1.Allocations, id: ConcatenationAllocationAnalyzer.StringConcatenationAllocationRule.Id, line: 1, character: 13);
         }
 
+        [TestMethod]
+        public void ConcatenationAllocation_DoNotWarnForOptimizedValueTypes() {
+            var snippets = new[]
+            {
+                @"string s0 = nameof(System.String) + '-';",
+                @"string s0 = nameof(System.String) + true;",
+                @"string s0 = nameof(System.String) + new System.IntPtr();",
+                @"string s0 = nameof(System.String) + new System.UIntPtr();"
+            };
+
+            var analyser = new ConcatenationAllocationAnalyzer();
+            foreach (var snippet in snippets) {
+                var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.AddExpression, SyntaxKind.AddAssignmentExpression));
+                Assert.AreEqual(0, info.Allocations.Count(x => x.Id == ConcatenationAllocationAnalyzer.ValueTypeToReferenceTypeInAStringConcatenationRule.Id));
+            }
+        }
+        
         [TestMethod]
         public void ConcatenationAllocation_DoNotWarnForConst() {
             var snippets = new[]
