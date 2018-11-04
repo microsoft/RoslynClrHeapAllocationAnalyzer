@@ -1,12 +1,11 @@
-﻿using ClrHeapAllocationAnalyzer;
-using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Immutable;
 
-namespace ClrHeapAllocationsAnalyzer.Test
+namespace ClrHeapAllocationAnalyzer.Test
 {
     [TestClass]
-    public class DisplayClassAllocationAnalyzerTests: AllocationAnalyzerTests
+    public class DisplayClassAllocationAnalyzerTests : AllocationAnalyzerTests
     {
         [TestMethod]
         public void DisplayClassAllocation_AnonymousMethodExpressionSyntax()

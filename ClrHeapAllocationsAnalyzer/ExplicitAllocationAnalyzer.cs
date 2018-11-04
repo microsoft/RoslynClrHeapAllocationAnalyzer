@@ -8,7 +8,7 @@
     using Microsoft.CodeAnalysis.Diagnostics;
 
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class ExplicitAllocationAnalyzer : DiagnosticAnalyzer
+    public sealed class ExplicitAllocationAnalyzer : AllocationAnalyzer
     {
         public static DiagnosticDescriptor NewArrayRule = new DiagnosticDescriptor("HAA0501", "Explicit new array type allocation", "Explicit new array type allocation", "Performance", DiagnosticSeverity.Info, true);
 
@@ -22,28 +22,24 @@
 
         public static DiagnosticDescriptor LetCauseRule = new DiagnosticDescriptor("HAA0506", "Let clause induced allocation", "Let clause induced allocation", "Performance", DiagnosticSeverity.Info, true);
 
-        internal static object[] EmptyMessageArgs = { };
-
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(LetCauseRule, InitializerCreationRule, ImplicitArrayCreationRule, AnonymousNewObjectRule, NewObjectRule, NewArrayRule);
 
-        public override void Initialize(AnalysisContext context)
+        protected override SyntaxKind[] Expressions => new[]
         {
-            var kinds = new[]
-            {
-                SyntaxKind.ObjectCreationExpression,            // Used
-                SyntaxKind.AnonymousObjectCreationExpression,   // Used
-                SyntaxKind.ArrayInitializerExpression,          // Used (this is inside an ImplicitArrayCreationExpression)
-                SyntaxKind.CollectionInitializerExpression,     // Is this used anywhere?
-                SyntaxKind.ComplexElementInitializerExpression, // Is this used anywhere? For what this is see http://source.roslyn.codeplex.com/#Microsoft.CodeAnalysis.CSharp/Compilation/CSharpSemanticModel.cs,80
-                SyntaxKind.ObjectInitializerExpression,         // Used linked to InitializerExpressionSyntax
-                SyntaxKind.ArrayCreationExpression,             // Used
-                SyntaxKind.ImplicitArrayCreationExpression,     // Used (this then contains an ArrayInitializerExpression)
-                SyntaxKind.LetClause                            // Used
-            };
-            context.RegisterSyntaxNodeAction(AnalyzeNode, kinds);
-        }
+            SyntaxKind.ObjectCreationExpression,            // Used
+            SyntaxKind.AnonymousObjectCreationExpression,   // Used
+            SyntaxKind.ArrayInitializerExpression,          // Used (this is inside an ImplicitArrayCreationExpression)
+            SyntaxKind.CollectionInitializerExpression,     // Is this used anywhere?
+            SyntaxKind.ComplexElementInitializerExpression, // Is this used anywhere? For what this is see http://source.roslyn.codeplex.com/#Microsoft.CodeAnalysis.CSharp/Compilation/CSharpSemanticModel.cs,80
+            SyntaxKind.ObjectInitializerExpression,         // Used linked to InitializerExpressionSyntax
+            SyntaxKind.ArrayCreationExpression,             // Used
+            SyntaxKind.ImplicitArrayCreationExpression,     // Used (this then contains an ArrayInitializerExpression)
+            SyntaxKind.LetClause                            // Used
+        };
 
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
+        private static readonly object[] EmptyMessageArgs = { };
+
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;

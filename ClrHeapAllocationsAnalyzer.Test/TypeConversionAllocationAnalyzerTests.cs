@@ -1,11 +1,10 @@
 ﻿using System;
-using ClrHeapAllocationAnalyzer;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Immutable;
 using System.Linq;
 
-namespace ClrHeapAllocationsAnalyzer.Test
+namespace ClrHeapAllocationAnalyzer.Test
 {
     [TestClass]
     public class TypeConversionAllocationAnalyzerTests : AllocationAnalyzerTests
