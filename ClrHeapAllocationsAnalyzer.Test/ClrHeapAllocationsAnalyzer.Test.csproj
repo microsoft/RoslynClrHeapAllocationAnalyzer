@@ -168,6 +168,7 @@
     <Compile Include="DisplayClassAllocationAnalyzerTests.cs" />
     <Compile Include="EnumeratorAllocationAnalyzerTests.cs" />
     <Compile Include="ExplicitAllocationAnalyzerTests.cs" />
+    <Compile Include="IgnoreTests.cs" />
     <Compile Include="StackOverflowAnswerTests.cs" />
     <Compile Include="TypeConversionAllocationAnalyzerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

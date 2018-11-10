@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ClrHeapAllocationsAnalyzer.Test
+namespace ClrHeapAllocationAnalyzer.Test
 {
     public static class AssertEx
     {

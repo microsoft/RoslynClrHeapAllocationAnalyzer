@@ -1,9 +1,8 @@
 ﻿using System.Collections.Immutable;
-using ClrHeapAllocationAnalyzer;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace ClrHeapAllocationsAnalyzer.Test
+namespace ClrHeapAllocationAnalyzer.Test
 {
     /// <summary>
     /// Taken from http://stackoverflow.com/questions/7995606/boxing-occurrence-in-c-sharp

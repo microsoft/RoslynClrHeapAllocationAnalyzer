@@ -1,10 +1,9 @@
-﻿using ClrHeapAllocationAnalyzer;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace ClrHeapAllocationsAnalyzer.Test
+namespace ClrHeapAllocationAnalyzer.Test
 {
     [TestClass]
     public class ConcatenationAllocationAnalyzerTests : AllocationAnalyzerTests {

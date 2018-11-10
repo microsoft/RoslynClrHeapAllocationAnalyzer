@@ -9,27 +9,23 @@
     using Microsoft.CodeAnalysis.Diagnostics;
 
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class EnumeratorAllocationAnalyzer : DiagnosticAnalyzer
+    public sealed class EnumeratorAllocationAnalyzer : AllocationAnalyzer
     {
         public static DiagnosticDescriptor ReferenceTypeEnumeratorRule = new DiagnosticDescriptor("HAA0401", "Possible allocation of reference type enumerator", "Non-ValueType enumerator may result in an heap allocation", "Performance", DiagnosticSeverity.Warning, true);
 
-        internal static object[] EmptyMessageArgs = { };
-
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ReferenceTypeEnumeratorRule);
 
-        public override void Initialize(AnalysisContext context)
-        {
-            context.RegisterSyntaxNodeAction(AnalyzeNode, SyntaxKind.ForEachStatement, SyntaxKind.InvocationExpression);
-        }
+        protected override SyntaxKind[] Expressions => new[] { SyntaxKind.ForEachStatement, SyntaxKind.InvocationExpression };
 
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
+        private static readonly object[] EmptyMessageArgs = { };
+
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;
             Action<Diagnostic> reportDiagnostic = context.ReportDiagnostic;
             var cancellationToken = context.CancellationToken;
             string filePath = node.SyntaxTree.FilePath;
-
             var foreachExpression = node as ForEachStatementSyntax;
             if (foreachExpression != null)
             {

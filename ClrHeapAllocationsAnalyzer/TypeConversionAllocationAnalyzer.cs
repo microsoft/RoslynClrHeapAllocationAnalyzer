@@ -10,7 +10,7 @@
 
 
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public sealed class TypeConversionAllocationAnalyzer : DiagnosticAnalyzer
+    public sealed class TypeConversionAllocationAnalyzer : AllocationAnalyzer
     {
         public static DiagnosticDescriptor ValueTypeToReferenceTypeConversionRule = new DiagnosticDescriptor("HAA0601", "Value type to reference type conversion causing boxing allocation", "Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site. Consider using generics if applicable", "Performance", DiagnosticSeverity.Warning, true);
 
@@ -20,31 +20,27 @@
 
         public static DiagnosticDescriptor ReadonlyMethodGroupAllocationRule = new DiagnosticDescriptor("HeapAnalyzerReadonlyMethodGroupAllocationRule", "Delegate allocation from a method group", "This will allocate a delegate instance", "Performance", DiagnosticSeverity.Info, true);
 
-        internal static object[] EmptyMessageArgs = { };
-
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(ValueTypeToReferenceTypeConversionRule, DelegateOnStructInstanceRule, MethodGroupAllocationRule, ReadonlyMethodGroupAllocationRule);
 
-        public override void Initialize(AnalysisContext context)
+        protected override SyntaxKind[] Expressions => new[]
         {
-            var kinds = new[]
-            {
-                SyntaxKind.SimpleAssignmentExpression,
-                SyntaxKind.ReturnStatement,
-                SyntaxKind.YieldReturnStatement,
-                SyntaxKind.CastExpression,
-                SyntaxKind.AsExpression,
-                SyntaxKind.CoalesceExpression,
-                SyntaxKind.ConditionalExpression,
-                SyntaxKind.ForEachStatement,
-                SyntaxKind.EqualsValueClause,
-                SyntaxKind.Interpolation,
-                SyntaxKind.Argument,
-                SyntaxKind.ArrowExpressionClause
-            };
-            context.RegisterSyntaxNodeAction(AnalyzeNode, kinds);
-        }
+            SyntaxKind.SimpleAssignmentExpression,
+            SyntaxKind.ReturnStatement,
+            SyntaxKind.YieldReturnStatement,
+            SyntaxKind.CastExpression,
+            SyntaxKind.AsExpression,
+            SyntaxKind.CoalesceExpression,
+            SyntaxKind.ConditionalExpression,
+            SyntaxKind.ForEachStatement,
+            SyntaxKind.EqualsValueClause,
+            SyntaxKind.Argument,
+            SyntaxKind.ArrowExpressionClause,
+            SyntaxKind.Interpolation
+        };
 
-        private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
+        private static readonly object[] EmptyMessageArgs = { };
+
+        protected override void AnalyzeNode(SyntaxNodeAnalysisContext context)
         {
             var node = context.Node;
             var semanticModel = context.SemanticModel;

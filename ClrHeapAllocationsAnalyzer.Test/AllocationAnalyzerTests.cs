@@ -1,14 +1,13 @@
-﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Threading;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace ClrHeapAllocationsAnalyzer.Test
+namespace ClrHeapAllocationAnalyzer.Test
 {
     public abstract class AllocationAnalyzerTests
     {
@@ -17,6 +16,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
                 MetadataReference.CreateFromFile(typeof(int).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(System.CodeDom.Compiler.GeneratedCodeAttribute).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(IList<>).Assembly.Location)
             };
 
@@ -47,10 +47,10 @@ namespace ClrHeapAllocationsAnalyzer.Test
         }
 
         protected Info ProcessCode(DiagnosticAnalyzer analyzer, string sampleProgram,
-                                   ImmutableArray<SyntaxKind> expected, bool allowBuildErrors = false)
+            ImmutableArray<SyntaxKind> expected, bool allowBuildErrors = false, string filePath = "")
         {
-            var options = new CSharpParseOptions(kind: SourceCodeKind.Script); //, languageVersion: LanguageVersion.CSharp5);
-            var tree = CSharpSyntaxTree.ParseText(sampleProgram, options);
+            var options = new CSharpParseOptions(kind: SourceCodeKind.Script);
+            var tree = CSharpSyntaxTree.ParseText(sampleProgram, options, filePath);
             var compilation = CSharpCompilation.Create("Test", new[] { tree }, references);
 
             var diagnostics = compilation.GetDiagnostics();
@@ -68,7 +68,7 @@ namespace ClrHeapAllocationsAnalyzer.Test
 
             // Run the code tree through the analyzer and record the allocations it reports
             var compilationWithAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create(analyzer));
-           var allocations = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult().Distinct(DiagnosticEqualityComparer.Instance).ToList();
+            var allocations = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult().Distinct(DiagnosticEqualityComparer.Instance).ToList();
 
             return new Info
             {
