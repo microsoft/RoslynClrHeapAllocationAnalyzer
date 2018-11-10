@@ -34,7 +34,7 @@ namespace ClrHeapAllocationAnalyzer
 
             if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is IMethodSymbol methodInfo)
             {
-                if (!methodInfo.IsStatic)
+                if (methodInfo.IsOverride)
                 {
                     CheckNonOverridenMethodOnStruct(methodInfo, reportDiagnostic, invocationExpression, filePath);
                 }

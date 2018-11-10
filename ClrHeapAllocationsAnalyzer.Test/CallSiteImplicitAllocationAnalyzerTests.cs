@@ -82,5 +82,20 @@ struct OverrideToHashCode
 
             Assert.AreEqual(0, info.Allocations.Count);
           }
+
+        [TestMethod]
+        public void CallSiteImplicitAllocation_DoNotReportNonOverriddenMethodCallForNonVirtualCalls() {
+            var snippet = @"
+using System.IO;
+
+FileAttributes attr = FileAttributes.System;
+attr.HasFlag (FileAttributes.Directory);
+";
+
+            var analyser = new CallSiteImplicitAllocationAnalyzer();
+            var info = ProcessCode(analyser, snippet, ImmutableArray.Create(SyntaxKind.InvocationExpression));
+
+            Assert.AreEqual(0, info.Allocations.Count);
+          }
     }
 }
