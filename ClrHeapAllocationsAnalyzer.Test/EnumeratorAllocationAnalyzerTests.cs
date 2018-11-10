@@ -43,9 +43,9 @@ foreach (var i in (IEnumerable<int>)intData) // Allocations (line 24)
             var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.ForEachStatement));
 
             Assert.AreEqual(2, info.Allocations.Count);
-            // Diagnostic: (19,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in an heap allocation
+            // Diagnostic: (19,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in a heap allocation
             AssertEx.ContainsDiagnostic(info.Allocations, id: EnumeratorAllocationAnalyzer.ReferenceTypeEnumeratorRule.Id, line: 19, character: 16);
-            // Diagnostic: (24,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in an heap allocation
+            // Diagnostic: (24,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in a heap allocation
             AssertEx.ContainsDiagnostic(info.Allocations, id: EnumeratorAllocationAnalyzer.ReferenceTypeEnumeratorRule.Id, line: 24, character: 16);
         }
 
@@ -76,7 +76,7 @@ foreach (var f in fx2) // NO Allocations
             var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.ForEachStatement, SyntaxKind.InvocationExpression));
 
             Assert.AreEqual(1, info.Allocations.Count);
-            // Diagnostic: (11,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in an heap allocation
+            // Diagnostic: (11,16): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in a heap allocation
             AssertEx.ContainsDiagnostic(info.Allocations, id: EnumeratorAllocationAnalyzer.ReferenceTypeEnumeratorRule.Id, line: 11, character: 16);
         }
 
@@ -116,7 +116,7 @@ private IEnumerator<int> GetIEnumeratorViaIEnumerable()
             var info = ProcessCode(analyser, sampleProgram, expectedNodes);
 
             Assert.AreEqual(1, info.Allocations.Count);
-            // Diagnostic: (11,35): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in an heap allocation ***
+            // Diagnostic: (11,35): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in a heap allocation ***
             AssertEx.ContainsDiagnostic(info.Allocations, id: EnumeratorAllocationAnalyzer.ReferenceTypeEnumeratorRule.Id, line: 11, character: 35);
         }
     }
