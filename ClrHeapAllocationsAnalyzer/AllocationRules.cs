@@ -1,6 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace ClrHeapAllocationAnalyzer
 {
@@ -20,6 +22,12 @@ namespace ClrHeapAllocationAnalyzer
         public static bool IsIgnoredAttribute(AttributeData attribute)
         {
             return IgnoredAttributes.Contains((attribute.AttributeClass.ContainingNamespace.ToString(), attribute.AttributeClass.Name));
+        }
+
+        public static EnabledRules GetEnabledRules(ImmutableArray<DiagnosticDescriptor> supportedDiagnostics,
+            SyntaxNodeAnalysisContext context)
+        {
+            return HotPathAnalysis.GetEnabledRules(supportedDiagnostics, context);
         }
     }
 }

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClrHeapAllocationAnalyzer.V
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClrHeapAllocationAnalyzer", "ClrHeapAllocationsAnalyzer\ClrHeapAllocationAnalyzer.csproj", "{EAF46154-6613-4CD6-BE70-9015FF94F9CF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClrHeapAllocationAnalyzer.Annotations", "ClrHeapAllocationAnalyzer.Annotations\ClrHeapAllocationAnalyzer.Annotations.csproj", "{202C0C68-65A5-458C-A0B8-4623465ED579}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,8 +29,15 @@ Global
 		{EAF46154-6613-4CD6-BE70-9015FF94F9CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EAF46154-6613-4CD6-BE70-9015FF94F9CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EAF46154-6613-4CD6-BE70-9015FF94F9CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{202C0C68-65A5-458C-A0B8-4623465ED579}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{202C0C68-65A5-458C-A0B8-4623465ED579}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{202C0C68-65A5-458C-A0B8-4623465ED579}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{202C0C68-65A5-458C-A0B8-4623465ED579}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {027507E2-AE88-4B44-BDFF-F6C1A8CE8381}
 	EndGlobalSection
 EndGlobal

@@ -168,6 +168,7 @@
     <Compile Include="DisplayClassAllocationAnalyzerTests.cs" />
     <Compile Include="EnumeratorAllocationAnalyzerTests.cs" />
     <Compile Include="ExplicitAllocationAnalyzerTests.cs" />
+    <Compile Include="HotPathTests.cs" />
     <Compile Include="IgnoreTests.cs" />
     <Compile Include="StackOverflowAnswerTests.cs" />
     <Compile Include="TypeConversionAllocationAnalyzerTests.cs" />
@@ -187,6 +188,10 @@
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ClrHeapAllocationAnalyzer.Annotations\ClrHeapAllocationAnalyzer.Annotations.csproj">
+      <Project>{202C0C68-65A5-458C-A0B8-4623465ED579}</Project>
+      <Name>ClrHeapAllocationAnalyzer.Annotations</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ClrHeapAllocationsAnalyzer\ClrHeapAllocationAnalyzer.csproj">
       <Project>{eaf46154-6613-4cd6-be70-9015ff94f9cf}</Project>
       <Name>ClrHeapAllocationAnalyzer</Name>

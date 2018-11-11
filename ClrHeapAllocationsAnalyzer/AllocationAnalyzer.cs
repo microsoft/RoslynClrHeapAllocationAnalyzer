@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Linq;
 
@@ -9,6 +10,11 @@ namespace ClrHeapAllocationAnalyzer
         protected abstract SyntaxKind[] Expressions { get; }
 
         protected abstract void AnalyzeNode(SyntaxNodeAnalysisContext context);
+
+        protected virtual void AnalyzeNode(SyntaxNodeAnalysisContext context, EnabledRules rules)
+        {
+            AnalyzeNode(context);
+        }
 
         public override void Initialize(AnalysisContext context)
         {
@@ -27,7 +33,13 @@ namespace ClrHeapAllocationAnalyzer
                 return;
             }
 
-            AnalyzeNode(context);
+            EnabledRules rules = AllocationRules.GetEnabledRules(SupportedDiagnostics, context);
+            if (!rules.AnyEnabled)
+            {
+                return;
+            }
+
+            AnalyzeNode(context, rules);
         }
     }
 }
