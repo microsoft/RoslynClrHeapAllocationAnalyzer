@@ -1,5 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.Diagnostics;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -8,16 +10,29 @@ namespace ClrHeapAllocationAnalyzer
 {
     internal class HotPathAnalysis
     {
+        /// <summary>
+        /// Maps rule ids to their respective hot path <see cref="AllocationKind"/>.
+        /// </summary>
+        private static readonly Dictionary<string, AllocationKind> idToKind = new Dictionary<string, AllocationKind> {
+            { "HAA0501", AllocationKind.Explicit },
+            { "HAA0502", AllocationKind.Explicit },
+            { "HAA0503", AllocationKind.Explicit },
+            { "HAA0504", AllocationKind.Explicit },
+            { "HAA0505", AllocationKind.Explicit },
+            { "HAA0506", AllocationKind.Explicit },
+        };
+
         public static EnabledRules GetEnabledRules(ImmutableArray<DiagnosticDescriptor> supportedDiagnostics,
           SyntaxNodeAnalysisContext context)
         {
-            if (!ShouldAnalyze(false, context))
+
+            var hotPathAttributes = context.ContainingSymbol.GetAttributes().Where(IsHotPathAttribute).ToList();
+            if (!ShouldAnalyze(false, hotPathAttributes, context))
             {
                 return EnabledRules.None;
             }
 
-            var allDiagnostrics = supportedDiagnostics.ToDictionary(x => x.Id, x => x);
-            return new EnabledRules(allDiagnostrics);
+            return GetRules(supportedDiagnostics, hotPathAttributes);
         }
 
         private static bool IsHotPathAttribute(AttributeData attribute)
@@ -31,11 +46,10 @@ namespace ClrHeapAllocationAnalyzer
         /// analysis be performed?
         /// </summary>
         private static bool ShouldAnalyze(bool onlyReportOnHotPath,
+            IEnumerable<AttributeData> contextHotPathAttributes,
             SyntaxNodeAnalysisContext context)
         {
-            IEnumerable<AttributeData> hotPathAttributes =
-                context.ContainingSymbol.GetAttributes().Where(IsHotPathAttribute);
-            if (hotPathAttributes.Any())
+            if (contextHotPathAttributes.Any())
             {
                 // Always perform analysis regardless of setting when a hot path
                 // is found.
@@ -73,6 +87,73 @@ namespace ClrHeapAllocationAnalyzer
             // The containing type does not have any other member with a hot
             // path attribute -> do analysis.
             return true;
+        }
+        
+        private static EnabledRules GetRules(ImmutableArray<DiagnosticDescriptor> supportedDiagnostics,
+            IList<AttributeData> hotPathAttributes)
+        {
+            // Aggregate all attributes.
+            AllocationKind allocationTypes = 0;
+            foreach (var attribute in hotPathAttributes)
+            {
+                PerformanceAttributeData data = ExtractAttributeData(attribute);
+                allocationTypes |= data.Allocations;
+            }
+            
+            // 
+            Dictionary<string, DiagnosticDescriptor> rules = new Dictionary<string, DiagnosticDescriptor>();
+            foreach (var diagnostic in supportedDiagnostics)
+            {
+                if (!idToKind.TryGetValue(diagnostic.Id, out var kind))
+                {
+                    // TODO: Should never happen when all kinds are added.
+                    kind = AllocationKind.TheRest;
+                }
+
+                
+                if (!allocationTypes.HasFlag(kind))
+                {
+                    
+                    continue;
+                }
+
+                rules.Add(diagnostic.Id, diagnostic);
+            }
+            
+
+            return new EnabledRules(rules);
+        }
+
+        private static PerformanceAttributeData ExtractAttributeData(AttributeData attribute)
+        {
+            AllocationKind allocations = AllocationKind.All;
+            if (attribute.NamedArguments.Length == 0)
+            {
+                return new PerformanceAttributeData(allocations);
+            }
+
+            if (attribute.NamedArguments[0].Key == "Allocations")
+            {
+                allocations = (AllocationKind)attribute.NamedArguments[0].Value.Value;
+            } else
+            {
+                throw new ArgumentException($"Unknown named argument {attribute.NamedArguments[0].Key}", nameof(attribute));
+            }
+
+            return new PerformanceAttributeData(allocations);
+        }
+
+        /// <summary>
+        /// Helper struct that represents the data of a <see cref="PerformanceCriticalAttribute"/>.
+        /// </summary>
+        private struct PerformanceAttributeData
+        {
+            public AllocationKind Allocations { get; }
+            
+            public PerformanceAttributeData(AllocationKind allocations = AllocationKind.All)
+            {
+                Allocations = allocations;
+            }
         }
     }
 }

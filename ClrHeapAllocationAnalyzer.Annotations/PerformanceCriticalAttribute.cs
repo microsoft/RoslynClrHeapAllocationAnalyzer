@@ -9,5 +9,14 @@ namespace Microsoft.Diagnostics
     [AttributeUsage(AttributeTargets.Constructor | AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true, Inherited = false)]
     public class PerformanceCriticalAttribute : Attribute
     {
+        public AllocationKind Allocations { get; set; } = AllocationKind.All;
+    }
+
+    [Flags]
+    public enum AllocationKind
+    {
+        Explicit = 1,
+        TheRest = 2,
+        All = Explicit | TheRest
     }
 }

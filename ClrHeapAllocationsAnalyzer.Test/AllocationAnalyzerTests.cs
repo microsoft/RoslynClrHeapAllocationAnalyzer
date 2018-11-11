@@ -51,6 +51,12 @@ namespace ClrHeapAllocationAnalyzer.Test
         protected Info ProcessCode(DiagnosticAnalyzer analyzer, string sampleProgram,
             ImmutableArray<SyntaxKind> expected, bool allowBuildErrors = false, string filePath = "")
         {
+            return ProcessCode(ImmutableArray.Create(analyzer), sampleProgram, expected, allowBuildErrors, filePath);
+        }
+
+        protected Info ProcessCode(ImmutableArray<DiagnosticAnalyzer> analyzers, string sampleProgram,
+            ImmutableArray<SyntaxKind> expected, bool allowBuildErrors = false, string filePath = "")
+        {
             var options = new CSharpParseOptions(kind: SourceCodeKind.Script);
             var tree = CSharpSyntaxTree.ParseText(sampleProgram, options, filePath);
             var compilation = CSharpCompilation.Create("Test", new[] { tree }, references);
@@ -69,7 +75,7 @@ namespace ClrHeapAllocationAnalyzer.Test
             var matches = GetExpectedDescendants(tree.GetRoot().ChildNodes(), expected);
 
             // Run the code tree through the analyzer and record the allocations it reports
-            var compilationWithAnalyzers = compilation.WithAnalyzers(ImmutableArray.Create(analyzer));
+            var compilationWithAnalyzers = compilation.WithAnalyzers(analyzers);
             var allocations = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().GetAwaiter().GetResult().Distinct(DiagnosticEqualityComparer.Instance).ToList();
 
             return new Info
