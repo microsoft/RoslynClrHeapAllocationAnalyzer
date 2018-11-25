@@ -119,5 +119,16 @@ private IEnumerator<int> GetIEnumeratorViaIEnumerable()
             // Diagnostic: (11,35): warning HeapAnalyzerEnumeratorAllocationRule: Non-ValueType enumerator may result in a heap allocation ***
             AssertEx.ContainsDiagnostic(info.Allocations, id: EnumeratorAllocationAnalyzer.ReferenceTypeEnumeratorRule.Id, line: 11, character: 35);
         }
+
+        [TestMethod]
+        public void EnumeratorAllocation_IterateOverString_NoWarning()
+        {
+            var sampleProgram = "foreach (char c in \"foo\") { }";
+
+            var analyser = new EnumeratorAllocationAnalyzer();
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.ForEachStatement));
+
+            Assert.AreEqual(0, info.Allocations.Count);
+        }
     }
 }

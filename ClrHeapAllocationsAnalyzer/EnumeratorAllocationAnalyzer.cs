@@ -33,6 +33,13 @@
                 if (typeInfo.Type == null)
                     return;
 
+                if (typeInfo.Type.Name == "String" && typeInfo.Type.ContainingNamespace.Name == "System")
+                {
+                    // Special case for System.String which is optmizined by
+                    // the compiler and does not result in an allocation.
+                    return;
+                }
+
                 // Regular way of getting the enumerator
                 ImmutableArray<ISymbol> enumerator = typeInfo.Type.GetMembers("GetEnumerator");
                 if ((enumerator == null || enumerator.Length == 0) && typeInfo.ConvertedType != null)
