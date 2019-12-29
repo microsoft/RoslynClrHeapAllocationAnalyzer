@@ -12,7 +12,7 @@ namespace ClrHeapAllocationAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class CallSiteImplicitAllocationAnalyzer : AllocationAnalyzer
     {
-        public static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor("HAA0101", "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation even if no parameter is passed in for the params parameter", "Performance", DiagnosticSeverity.Warning, true);
+        public static DiagnosticDescriptor ParamsParameterRule = new DiagnosticDescriptor("HAA0101", "Array allocation for params parameter", "This call site is calling into a function with a 'params' parameter. This results in an array allocation", "Performance", DiagnosticSeverity.Warning, true);
 
         public static DiagnosticDescriptor ValueTypeNonOverridenCallRule = new DiagnosticDescriptor("HAA0102", "Non-overridden virtual method call on value type", "Non-overridden virtual method call on a value type adds a boxing or constrained instruction", "Performance", DiagnosticSeverity.Warning, true);
 
@@ -54,6 +54,11 @@ namespace ClrHeapAllocationAnalyzer
         private static void CheckParam(InvocationExpressionSyntax invocationExpression, IMethodSymbol methodInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
         {
             var arguments = invocationExpression.ArgumentList.Arguments;
+            if (arguments.Count == methodInfo.Parameters.Length - 1)
+            {
+                return;
+            }
+
             if (arguments.Count != methodInfo.Parameters.Length)
             {
                 reportDiagnostic(Diagnostic.Create(ParamsParameterRule, invocationExpression.GetLocation(), EmptyMessageArgs));
