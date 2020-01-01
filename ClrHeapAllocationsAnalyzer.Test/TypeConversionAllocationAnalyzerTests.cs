@@ -656,5 +656,32 @@ public struct MyStruct {
             var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
             AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 54 );
         }
+        
+        [TestMethod]
+        public void TypeConversionAllocation_DoNotReportInlineDelegateAsStructInstanceMethods() {
+            const string snippet = @"
+using System;
+public struct MyStruct {
+    public void Testing() {
+        var ints = new[] { 5, 4, 3, 2, 1 };
+        Array.Sort(ints, delegate(int x, int y) { return x - y; });
+        Array.Sort(ints, (x, y) => x - y);
+        DoSomething(() => throw new Exception());
+        DoSomething(delegate() { throw new Exception(); });
+    }
+
+    private static void DoSomething(Action action)
+    {
+    }
+}
+            ";
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
+            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 26 );
+            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 7, 26 );
+            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 8, 26 );
+            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 9, 26 );
+        }
     }
 }
