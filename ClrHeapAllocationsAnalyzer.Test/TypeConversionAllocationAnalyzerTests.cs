@@ -610,7 +610,7 @@ struct Foo
         }
         
         [TestMethod]
-        public void TypeConversionAllocation_ReportBoxingAllocationForPassingStructMethodForDelegateConstructor() {
+        public void TypeConversionAllocation_ReportBoxingAllocationForPassingStructInstanceMethodForDelegateConstructor() {
             const string snippet = @"
 using System;
 public struct MyStruct {
@@ -631,6 +631,30 @@ public struct MyStruct {
             var analyzer = new TypeConversionAllocationAnalyzer();
             var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
             AssertEx.ContainsDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 54 );
+        } 
+        
+        [TestMethod]
+        public void TypeConversionAllocation_DoNotReportBoxingAllocationForPassingStructStaticMethodForDelegateConstructor() {
+            const string snippet = @"
+using System;
+public struct MyStruct {
+    public void Testing() {
+        var @struct = new MyStruct();
+        @struct.ProcessFunc(new Func<object, string>(FooObjCall));
+    }
+
+    public void ProcessFunc(Func<object, string> func) {
+    }
+
+    private static string FooObjCall(object obj) {
+        return obj.ToString();
+    }
+}
+            ";
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
+            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 54 );
         }
     }
 }

@@ -302,7 +302,7 @@
                 }
 
                 var symbolInfo = semanticModel.GetSymbolInfo(node, cancellationToken).Symbol;
-                if (symbolInfo?.Kind == SymbolKind.Method && symbolInfo?.ContainingType?.IsValueType == true)
+                if (symbolInfo != null && symbolInfo.Kind == SymbolKind.Method && symbolInfo.IsStatic == false && symbolInfo.ContainingType?.IsValueType == true)
                 {
                     reportDiagnostic(Diagnostic.Create(DelegateOnStructInstanceRule, location, EmptyMessageArgs));
                 }
