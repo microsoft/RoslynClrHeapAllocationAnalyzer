@@ -582,5 +582,28 @@ var f2 = (object)""5""; // NO Allocation
                 SyntaxKind.ArrowExpressionClause));
             Assert.AreEqual(0, info.Allocations.Count);
         }
+
+        [TestMethod]
+        public void TypeConversionAllocation_NoDiagnosticWhenPassingDelegateAsArgument() {
+            const string snippet = @"
+using System;
+struct Foo
+{
+    void Do(Action process)
+    {
+        DoMore(process); // Analyzer triggers warning here, indicating 'process' will be boxed.
+    }
+
+    void DoMore(Action process)
+    {
+        process();
+    }
+}
+            ";
+
+            var analyzer = new TypeConversionAllocationAnalyzer();
+            var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
+            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 7, 16 );
+        }
     }
 }
