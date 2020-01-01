@@ -606,7 +606,7 @@ struct Foo
 
             var analyzer = new TypeConversionAllocationAnalyzer();
             var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
-            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 7, 16 );
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 7, 16 );
         }
         
         [TestMethod]
@@ -654,7 +654,7 @@ public struct MyStruct {
 
             var analyzer = new TypeConversionAllocationAnalyzer();
             var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
-            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 54 );
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 54 );
         }
         
         [TestMethod]
@@ -678,10 +678,10 @@ public struct MyStruct {
 
             var analyzer = new TypeConversionAllocationAnalyzer();
             var info = ProcessCode(analyzer, snippet, ImmutableArray.Create(SyntaxKind.Argument));
-            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 26 );
-            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 7, 26 );
-            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 8, 26 );
-            AssertEx.ContainNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 9, 26 );
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 6, 26 );
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 7, 26 );
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 8, 26 );
+            AssertEx.ContainsNoDiagnostic(info.Allocations, TypeConversionAllocationAnalyzer.DelegateOnStructInstanceRule.Id, 9, 26 );
         }
     }
 }
