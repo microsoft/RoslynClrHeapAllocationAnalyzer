@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Threading.Tasks;
@@ -11,10 +13,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ClrHeapAllocationAnalyzer
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AvoidAllocationWithEnumerableEmptyCodeFix)), Shared]
-    public class AvoidAllocationWithEnumerableEmptyCodeFix : CodeFixProvider
+    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AvoidAllocationWithArrayEmptyCodeFix)), Shared]
+    public class AvoidAllocationWithArrayEmptyCodeFix : CodeFixProvider
     {
-        private const string RemoveUnnecessaryListCreation = "Avoid allocation by using Enumerable.Empty<>()";
+        private const string RemoveUnnecessaryListCreation = "Avoid allocation by using Array.Empty<>()";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
             => ImmutableArray.Create(ExplicitAllocationAnalyzer.NewObjectRule.Id, ExplicitAllocationAnalyzer.NewArrayRule.Id);
@@ -44,7 +46,7 @@ namespace ClrHeapAllocationAnalyzer
         private async Task TryToRegisterCodeFixesForMethodInvocationParameter(CodeFixContext context, SyntaxNode node, Diagnostic diagnostic)
         {
             var semanticModel = await context.Document.GetSemanticModelAsync(context.CancellationToken);
-            if (IsExpectedParameterIEnumerable(node, semanticModel) && node is ArgumentSyntax argument)
+            if (IsExpectedParameterReadonlySequence(node, semanticModel) && node is ArgumentSyntax argument)
             {
                 TryRegisterCodeFix(context, node, diagnostic, argument.Expression, semanticModel);
             }
@@ -92,27 +94,6 @@ namespace ClrHeapAllocationAnalyzer
             }
         }
 
-        private bool IsExpectedParameterIEnumerable(SyntaxNode node, SemanticModel semanticModel)
-        {
-            if (node is ArgumentSyntax argument && node.Parent is ArgumentListSyntax argumentList)
-            {
-                var argumentIndex = argumentList.Arguments.IndexOf(argument);
-                if (semanticModel.GetSymbolInfo(argumentList.Parent).Symbol is IMethodSymbol methodSymbol)
-                {
-                    if (methodSymbol.Parameters.Length > argumentIndex)
-                    {
-                        var parameterType = methodSymbol.Parameters[argumentIndex].Type as INamedTypeSymbol;
-                        if (IsTypeIEnumerable(semanticModel, parameterType))
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            return false;
-        }
-
 
         private bool IsMethodInvocationParameter(SyntaxNode node) => node is ArgumentSyntax;
 
@@ -130,16 +111,15 @@ namespace ClrHeapAllocationAnalyzer
 
         private bool IsInsidePropertyDeclaration(SyntaxNode node, SemanticModel semanticModel)
         {
-            if(node.FindContainer<PropertyDeclarationSyntax>() is PropertyDeclarationSyntax propertyDeclaration && 
-               IsTypeIEnumerable(semanticModel, propertyDeclaration.Type))
+            if(node.FindContainer<PropertyDeclarationSyntax>() is PropertyDeclarationSyntax propertyDeclaration && IsPropertyTypeReadonlySequence(semanticModel, propertyDeclaration))
             {
-                return IsAutoPropertyReturningEnumerable(node) || IsArrowExpressionReturningEnumerable(node);
+                return IsAutoPropertyWithGetter(node) || IsArrowExpression(node);
             }
 
             return false;
         }
 
-        private bool IsAutoPropertyReturningEnumerable(SyntaxNode node)
+        private bool IsAutoPropertyWithGetter(SyntaxNode node)
         {
             if(node.FindContainer<AccessorDeclarationSyntax>() is AccessorDeclarationSyntax accessorDeclaration)
             {
@@ -148,8 +128,8 @@ namespace ClrHeapAllocationAnalyzer
 
             return false;
         }
-        
-        private bool IsArrowExpressionReturningEnumerable(SyntaxNode node)
+
+        private bool IsArrowExpression(SyntaxNode node)
         {
             return node.FindContainer<ArrowExpressionClauseSyntax>() != null;
         }
@@ -170,7 +150,7 @@ namespace ClrHeapAllocationAnalyzer
         {
             if (node.FindContainer<MethodDeclarationSyntax>() is MethodDeclarationSyntax methodDeclaration)
             {
-                if (IsReturnTypeIEnumerable(semanticModel, methodDeclaration))
+                if (IsReturnTypeReadonlySequence(semanticModel, methodDeclaration))
                 {
                     return true;
                 }
@@ -181,7 +161,7 @@ namespace ClrHeapAllocationAnalyzer
 
         private async Task<Document> Transform(Document contextDocument, SyntaxNode node,  TypeSyntax typeArgument, CancellationToken cancellationToken)
         {
-            var noAllocation = SyntaxFactory.ParseExpression($"Enumerable.Empty<{typeArgument}>()");
+            var noAllocation = SyntaxFactory.ParseExpression($"Array.Empty<{typeArgument}>()");
             var newNode = ReplaceExpression(node, noAllocation);
             if (newNode == null)
             {
@@ -242,22 +222,70 @@ namespace ClrHeapAllocationAnalyzer
                 x.IsGenericType && x.ToString().StartsWith("System.Collections.Generic.ICollection"));
         }
 
-        private static bool IsReturnTypeIEnumerable(SemanticModel semanticModel, MethodDeclarationSyntax methodDeclarationSyntax)
+        private static bool IsPropertyTypeReadonlySequence(SemanticModel semanticModel, PropertyDeclarationSyntax propertyDeclaration)
+        {
+            return IsTypeReadonlySequence(semanticModel, propertyDeclaration.Type);
+        }
+
+        private static bool IsReturnTypeReadonlySequence(SemanticModel semanticModel, MethodDeclarationSyntax methodDeclarationSyntax)
         {
             var typeSyntax = methodDeclarationSyntax.ReturnType;
-            return IsTypeIEnumerable(semanticModel, typeSyntax);
+            return IsTypeReadonlySequence(semanticModel, typeSyntax);
         }
 
-        private static bool IsTypeIEnumerable(SemanticModel semanticModel, TypeSyntax typeSyntax)
+        private bool IsExpectedParameterReadonlySequence(SyntaxNode node, SemanticModel semanticModel)
         {
-            var returnType = ModelExtensions.GetTypeInfo(semanticModel, typeSyntax).Type as INamedTypeSymbol;
-            return IsTypeIEnumerable(semanticModel, returnType);
+            if (node is ArgumentSyntax argument && node.Parent is ArgumentListSyntax argumentList)
+            {
+                var argumentIndex = argumentList.Arguments.IndexOf(argument);
+                if (semanticModel.GetSymbolInfo(argumentList.Parent).Symbol is IMethodSymbol methodSymbol)
+                {
+                    if (methodSymbol.Parameters.Length > argumentIndex)
+                    {
+                        var parameterType = methodSymbol.Parameters[argumentIndex].Type;
+                        if (IsTypeReadonlySequence(semanticModel, parameterType))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
 
-        private static bool IsTypeIEnumerable(SemanticModel semanticModel, INamedTypeSymbol type)
+        private static bool IsTypeReadonlySequence(SemanticModel semanticModel, TypeSyntax typeSyntax)
         {
-            var ienumerable = semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IEnumerable`1");
-            return type != null && ienumerable.Equals(type.ConstructedFrom);
+            var returnType = ModelExtensions.GetTypeInfo(semanticModel, typeSyntax).Type;
+            return IsTypeReadonlySequence(semanticModel, returnType);
+        }
+
+        private static bool IsTypeReadonlySequence(SemanticModel semanticModel, ITypeSymbol type)
+        {
+            if (type.Kind == SymbolKind.ArrayType)
+            {
+                return true;
+            }
+
+            if (type is INamedTypeSymbol namedType && namedType.IsGenericType)
+            {
+                foreach (var readonlySequence in GetReadonlySequenceTypes(semanticModel))
+                {
+                    if (readonlySequence.Equals(namedType.ConstructedFrom))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static IEnumerable<INamedTypeSymbol> GetReadonlySequenceTypes(SemanticModel semanticModel)
+        {
+            yield return semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IEnumerable`1");
+            yield return semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyList`1");
+            yield return semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyCollection`1");
         }
     }
 }
