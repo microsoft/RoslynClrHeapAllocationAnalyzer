@@ -28,39 +28,93 @@ namespace ClrHeapAllocationAnalyzer
             var diagnosticSpan = diagnostic.Location.SourceSpan;
             var node = root.FindNode(diagnosticSpan);
 
-            if (IsReturnStatement(node) == false)
+            if (IsReturnStatement(node))
             {
+                await TryToRegisterCodeFixesForReturnStatement(context, node, diagnostic);
                 return;
             }
+            
+            if (IsMethodInvocationParameter(node))
+            {
+                await TryToRegisterCodeFixesForMethodInvocationParameter(context, node, diagnostic);
+                return;
+            }
+        }
 
-            switch (node)
+        private async Task TryToRegisterCodeFixesForMethodInvocationParameter(CodeFixContext context, SyntaxNode node, Diagnostic diagnostic)
+        {
+            var semanticModel = await context.Document.GetSemanticModelAsync(context.CancellationToken);
+            if (IsExpectedParameterIEnumerable(node, semanticModel) && node is ArgumentSyntax argument)
+            {
+                TryRegisterCodeFix(context, node, diagnostic, argument.Expression, semanticModel);
+            }
+        }
+
+        private async Task TryToRegisterCodeFixesForReturnStatement(CodeFixContext context, SyntaxNode node, Diagnostic diagnostic)
+        {
+            var semanticModel = await context.Document.GetSemanticModelAsync(context.CancellationToken);
+
+            if (IsInsideMemberReturningEnumerable(node, semanticModel))
+            {
+                TryRegisterCodeFix(context, node, diagnostic, node, semanticModel);
+            }
+        }
+
+        private void TryRegisterCodeFix(CodeFixContext context, SyntaxNode node, Diagnostic diagnostic, SyntaxNode creationExpression, SemanticModel semanticModel)
+        {
+            switch (creationExpression)
             {
                 case ObjectCreationExpressionSyntax objectCreation:
                 {
-                    var semanticModel = await context.Document.GetSemanticModelAsync(context.CancellationToken);
-                    if (IsInsideMemberReturningEnumerable(node, semanticModel) && CanBeReplaceWithEnumerableEmpty(objectCreation, semanticModel))
+                    if (CanBeReplaceWithEnumerableEmpty(objectCreation, semanticModel))
                     {
                         if (objectCreation.Type is GenericNameSyntax genericName)
                         {
-                            var codeAction = CodeAction.Create(RemoveUnnecessaryListCreation, token => Transform(context.Document, node, genericName.TypeArgumentList.Arguments[0], token), RemoveUnnecessaryListCreation);
+                            var codeAction = CodeAction.Create(RemoveUnnecessaryListCreation,
+                                token => Transform(context.Document, node, genericName.TypeArgumentList.Arguments[0], token),
+                                RemoveUnnecessaryListCreation);
                             context.RegisterCodeFix(codeAction, diagnostic);
                         }
                     }
                 }
-                break;
-
+                    break;
                 case ArrayCreationExpressionSyntax arrayCreation:
                 {
-                    var semanticModel = await context.Document.GetSemanticModelAsync(context.CancellationToken);
-                    if (IsInsideMethodReturningEnumerable(node, semanticModel) && CanBeReplaceWithEnumerableEmpty(arrayCreation))
+                    if (CanBeReplaceWithEnumerableEmpty(arrayCreation))
                     {
-                        var codeAction = CodeAction.Create(RemoveUnnecessaryListCreation, token => Transform(context.Document, node, arrayCreation.Type.ElementType, token), RemoveUnnecessaryListCreation);
+                        var codeAction = CodeAction.Create(RemoveUnnecessaryListCreation,
+                            token => Transform(context.Document, node, arrayCreation.Type.ElementType, token),
+                            RemoveUnnecessaryListCreation);
                         context.RegisterCodeFix(codeAction, diagnostic);
                     }
                 }
-                break;
+                    break;
             }
         }
+
+        private bool IsExpectedParameterIEnumerable(SyntaxNode node, SemanticModel semanticModel)
+        {
+            if (node is ArgumentSyntax argument && node.Parent is ArgumentListSyntax argumentList)
+            {
+                var argumentIndex = argumentList.Arguments.IndexOf(argument);
+                if (semanticModel.GetSymbolInfo(argumentList.Parent).Symbol is IMethodSymbol methodSymbol)
+                {
+                    if (methodSymbol.Parameters.Length > argumentIndex)
+                    {
+                        var parameterType = methodSymbol.Parameters[argumentIndex].Type as INamedTypeSymbol;
+                        if (IsTypeIEnumerable(semanticModel, parameterType))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+
+        private bool IsMethodInvocationParameter(SyntaxNode node) => node is ArgumentSyntax;
 
         private static bool IsReturnStatement(SyntaxNode node)
         {
@@ -146,6 +200,9 @@ namespace ClrHeapAllocationAnalyzer
                     return parentReturn.WithExpression(newExpression);
                 case ArrowExpressionClauseSyntax arrowStatement:
                     return arrowStatement.WithExpression(newExpression);
+                case ArgumentListSyntax argumentList:
+                    var newArguments = argumentList.Arguments.Select(x => x == node ? SyntaxFactory.Argument(newExpression) : x);
+                    return argumentList.WithArguments(SyntaxFactory.SeparatedList(newArguments));
                 default:
                     return null;
             }
@@ -194,21 +251,13 @@ namespace ClrHeapAllocationAnalyzer
         private static bool IsTypeIEnumerable(SemanticModel semanticModel, TypeSyntax typeSyntax)
         {
             var returnType = ModelExtensions.GetTypeInfo(semanticModel, typeSyntax).Type as INamedTypeSymbol;
-            var ienumerable = semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IEnumerable`1");
-            return returnType != null && ienumerable.Equals(returnType.ConstructedFrom);
+            return IsTypeIEnumerable(semanticModel, returnType);
         }
-    }
 
-    static class SyntaxHelper
-    {
-        public static T FindContainer<T>(this SyntaxNode tokenParent) where T : SyntaxNode
+        private static bool IsTypeIEnumerable(SemanticModel semanticModel, INamedTypeSymbol type)
         {
-            if (tokenParent is T invocation)
-            {
-                return invocation;
-            }
-
-            return tokenParent.Parent == null ? null : FindContainer<T>(tokenParent.Parent);
+            var ienumerable = semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IEnumerable`1");
+            return type != null && ienumerable.Equals(type.ConstructedFrom);
         }
     }
 }

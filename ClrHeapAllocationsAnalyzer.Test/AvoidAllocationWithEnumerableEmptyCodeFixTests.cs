@@ -321,5 +321,126 @@ namespace SampleNamespace
 
             TestCodeFix(before, after, ExplicitAllocationAnalyzer.NewArrayRule.Id, 0);
         }
+        
+        [TestMethod]
+        public void should_replace_list_creation_as_method_invocation_parameter_with_enumerable_empty()
+        {
+            var before = @"
+using System.Collections.Generic;
+
+namespace SampleNamespace
+{
+    class SampleClass
+    {
+        public void DoSomething()
+        {
+            Do([|new List<int>()|]);
+        }
+        
+        private void Do(IEnumerable<int> a)
+        {
+
+        }
+    }
+}";
+            var after = @"
+using System.Collections.Generic;
+
+namespace SampleNamespace
+{
+    class SampleClass
+    {
+        public void DoSomething()
+        {
+            Do(Enumerable.Empty<int>());
+        }
+        
+        private void Do(IEnumerable<int> a)
+        {
+
+        }
+    }
+}";
+
+            TestCodeFix(before, after, ExplicitAllocationAnalyzer.NewObjectRule.Id, 0);
+        }
+
+        [TestMethod]
+        public void should_replace_array_creation_as_method_invocation_parameter_with_enumerable_empty()
+        {
+            var before = @"
+using System.Collections.Generic;
+
+namespace SampleNamespace
+{
+    class SampleClass
+    {
+        public void DoSomething()
+        {
+            Do([|new int[0]|]);
+        }
+        
+        private void Do(IEnumerable<int> a)
+        {
+
+        }
+    }
+}";
+            var after = @"
+using System.Collections.Generic;
+
+namespace SampleNamespace
+{
+    class SampleClass
+    {
+        public void DoSomething()
+        {
+            Do(Enumerable.Empty<int>());
+        }
+        
+        private void Do(IEnumerable<int> a)
+        {
+
+        }
+    }
+}";
+
+            TestCodeFix(before, after, ExplicitAllocationAnalyzer.NewArrayRule.Id, 0);
+        }        
+        
+        [TestMethod]
+        public void should_replace_array_creation_as_delegate_invocation_parameter_with_enumerable_empty()
+        {
+            var before = @"
+using System.Collections.Generic;
+using System;
+
+namespace SampleNamespace
+{
+    class SampleClass
+    {
+        public void DoSomething(Action<IEnumerable<int>> doSth)
+        {
+            doSth([|new int[0]|]);
+        }
+    }
+}";
+            var after = @"
+using System.Collections.Generic;
+using System;
+
+namespace SampleNamespace
+{
+    class SampleClass
+    {
+        public void DoSomething(Action<IEnumerable<int>> doSth)
+        {
+            doSth(Enumerable.Empty<int>());
+        }
+    }
+}";
+
+            TestCodeFix(before, after, ExplicitAllocationAnalyzer.NewArrayRule.Id, 0);
+        }
     }
 }
