@@ -95,5 +95,35 @@ attr.HasFlag (FileAttributes.Directory);
 
             Assert.AreEqual(0, info.Allocations.Count);
           }
+
+        [TestMethod]
+        public void ParamsIsPrecededByOptionalParameters()
+        {
+            var sampleProgram = @"
+using System.IO;
+
+public class MyClass
+{
+    static class Demo
+    {
+        static void Fun1()
+        {
+            Fun2();
+            Fun2(args: """", i: 5);
+        }
+        static void Fun2(int i = 0, params object[] args)
+        {
+        }
+    }
+}";
+
+            var analyser = new CallSiteImplicitAllocationAnalyzer();
+            var info = ProcessCode(analyser, sampleProgram, ImmutableArray.Create(SyntaxKind.InvocationExpression));
+
+            Assert.AreEqual(1, info.Allocations.Count, "Should report 1 allocation.");
+            // Diagnostic: (11,13): warning HeapAnalyzerImplicitParamsRule: This call site is calling into a function with a 'params' parameter. This results in an array allocation
+            AssertEx.ContainsDiagnostic(info.Allocations, id: CallSiteImplicitAllocationAnalyzer.ParamsParameterRule.Id, line: 11, character: 13);
+        }
+
     }
 }
