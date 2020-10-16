@@ -30,49 +30,39 @@ namespace ClrHeapAllocationAnalyzer
             var cancellationToken = context.CancellationToken;
             string filePath = node.SyntaxTree.FilePath;
 
-            var invocationExpression = node as InvocationExpressionSyntax;
-
-            if (semanticModel.GetSymbolInfo(invocationExpression, cancellationToken).Symbol is IMethodSymbol methodInfo)
-            {
-                if (methodInfo.IsOverride)
-                {
-                    CheckNonOverridenMethodOnStruct(methodInfo, reportDiagnostic, invocationExpression, filePath);
-                }
-
-                if (methodInfo.Parameters.Length > 0 && invocationExpression.ArgumentList != null)
-                {
-                    var lastParam = methodInfo.Parameters[methodInfo.Parameters.Length - 1];
-                    if (lastParam.IsParams)
-                    {
-                        CheckParam(invocationExpression, methodInfo, semanticModel, reportDiagnostic, filePath, cancellationToken);
-                    }
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static void CheckParam(InvocationExpressionSyntax invocationExpression, IMethodSymbol methodInfo, SemanticModel semanticModel, Action<Diagnostic> reportDiagnostic, string filePath, CancellationToken cancellationToken)
-        {
-            var arguments = invocationExpression.ArgumentList.Arguments;
-            if (arguments.Count == methodInfo.Parameters.Length - 1)
+            if (semanticModel.GetOperation(node, cancellationToken) is not IInvocationOperation invocationOperation)
             {
                 return;
             }
 
-            if (arguments.Count != methodInfo.Parameters.Length)
+            var targetMethod = invocationOperation.TargetMethod;
+
+            if (targetMethod.IsOverride)
             {
-                reportDiagnostic(Diagnostic.Create(ParamsParameterRule, invocationExpression.GetLocation(), EmptyMessageArgs));
-                HeapAllocationAnalyzerEventSource.Logger.ParamsAllocation(filePath);
+                CheckNonOverridenMethodOnStruct(targetMethod, reportDiagnostic, node, filePath);
             }
-            else
+
+            bool compilationHasSystemArrayEmpty = !semanticModel.Compilation.GetSpecialType(SpecialType.System_Array).GetMembers("Empty").IsEmpty;
+
+            // Loop on every argument because params argument may not be the last one.
+            //     static void Fun1() => Fun2(args: "", i: 5);
+            //     static void Fun2(int i = 0, params object[] args) {}
+            foreach (var argument in invocationOperation.Arguments)
             {
-                var lastIndex = arguments.Count - 1;
-                var lastArgumentTypeInfo = semanticModel.GetTypeInfo(arguments[lastIndex].Expression, cancellationToken);
-                if (lastArgumentTypeInfo.Type != null && !lastArgumentTypeInfo.Type.Equals(methodInfo.Parameters[lastIndex].Type))
+                if (argument.ArgumentKind != ArgumentKind.ParamArray)
                 {
-                    reportDiagnostic(Diagnostic.Create(ParamsParameterRule, invocationExpression.GetLocation(), EmptyMessageArgs));
-                    HeapAllocationAnalyzerEventSource.Logger.ParamsAllocation(filePath);
+                    continue;
                 }
+
+                bool isEmpty = (argument.Value as IArrayCreationOperation)?.Initializer.ElementValues.IsEmpty == true;
+
+                // Up to net45 the System.Array.Empty<T> singleton didn't existed so an empty params array was still causing some memory allocation.
+                if (argument.IsImplicit && (!isEmpty || !compilationHasSystemArrayEmpty))
+                {
+                    reportDiagnostic(Diagnostic.Create(ParamsParameterRule, node.GetLocation(), EmptyMessageArgs));
+                }
+
+                break;
             }
         }
 
