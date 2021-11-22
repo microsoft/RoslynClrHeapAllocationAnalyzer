@@ -14,9 +14,19 @@
 		</InstallationTarget>
 		<InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,18.0)">
 		  <ProductArchitecture>amd64</ProductArchitecture>
-		</InstallationTarget>	
-        <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[15.0,)" />
-        <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[15.0,)" />	
+		</InstallationTarget>
+        <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[15.0,)">
+			<ProductArchitecture>x86</ProductArchitecture>
+		</InstallationTarget>
+		<InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0,18.0)">
+		  <ProductArchitecture>amd64</ProductArchitecture>
+		</InstallationTarget>
+        <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[15.0,)">
+			<ProductArchitecture>x86</ProductArchitecture>		
+		</InstallationTarget>
+		<InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.0,18.0)">
+		  <ProductArchitecture>amd64</ProductArchitecture>
+		</InstallationTarget>
     </Installation>
     <Dependencies>
         <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.7.2,)" />
