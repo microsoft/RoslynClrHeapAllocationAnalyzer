@@ -8,6 +8,7 @@ namespace ClrHeapAllocationAnalyzer
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
     using Microsoft.CodeAnalysis.Diagnostics;
+    using Microsoft.CodeAnalysis.Operations;
 
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class CallSiteImplicitAllocationAnalyzer : AllocationAnalyzer
@@ -30,7 +31,8 @@ namespace ClrHeapAllocationAnalyzer
             var cancellationToken = context.CancellationToken;
             string filePath = node.SyntaxTree.FilePath;
 
-            if (semanticModel.GetOperation(node, cancellationToken) is not IInvocationOperation invocationOperation)
+            var invocationOperation = semanticModel.GetOperation(node, cancellationToken) as IInvocationOperation;
+            if(invocationOperation is null)
             {
                 return;
             }
