@@ -1,3 +1,5 @@
+**NOTE** This project is no longer maintained. The high impact analyzers from this repository are being merged with dotnet/roslyn-analyzers. As such, this repo was archived
+
 Roslyn Clr Heap Allocation Analyzer
 ===================================
 
